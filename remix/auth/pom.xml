@@ -16,14 +16,71 @@
     <description>网关服务</description>
 
     <dependencies>
+        <!-- 提供认证接口所需的 Spring MVC、JSON 序列化和内嵌 Tomcat。 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <!-- 提供用户名密码认证、请求授权和密码编码能力。 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+
+        <!-- 提供 Bearer Token/JWT 的解析、签名校验和资源服务器支持。 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
+        </dependency>
+
+        <!-- 支持使用 Jakarta Validation 校验登录请求等入参。 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
+        </dependency>
+
+        <!-- 暴露 health、info 等运行状态端点。 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+
+        <!-- 为 @ConfigurationProperties 生成 IDE 配置提示，不进入运行时依赖。 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-configuration-processor</artifactId>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- 保留现有日志注解等 Lombok 用法，不向依赖方传递。 -->
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
+            <optional>true</optional>
         </dependency>
 
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>cn.hutool</groupId>
+            <artifactId>hutool-all</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.zz.learn</groupId>
+            <artifactId>system</artifactId>
+            <version>1.0.0</version>
+            <scope>compile</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>com.zz.learn</groupId>
+            <artifactId>common-core</artifactId>
+            <version>1.0.0</version>
         </dependency>
     </dependencies>
 </project>

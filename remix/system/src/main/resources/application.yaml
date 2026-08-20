@@ -1,0 +1,4 @@
+mybatis-plus:
+  global-config:
+    db-config:
+      id-type: assign_id  # 全局配置主键策略为雪花算法
