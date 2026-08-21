@@ -1,5 +1,5 @@
 server:
-  port: 10000
+  port: 10001
 
 spring:
   datasource:
@@ -10,6 +10,17 @@ spring:
     hikari:
       maximum-pool-size: 10
       minimum-idle: 5
+  data:
+    redis:
+      port: 6379
+      password: 666666
+      host: localhost
+      timeout: 5000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
 
 mybatis‑plus:
   mapper‑locations: classpath*:mapper/**/*.xml

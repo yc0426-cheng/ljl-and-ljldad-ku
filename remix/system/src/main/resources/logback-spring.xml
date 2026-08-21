@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+    <!--日志格式应用spring boot默认的格式，也可以自己更改-->
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+
+    <property name="LOG_DATEFORMAT_PATTERN" value="yyyy-MM-dd HH:mm:ss.SSS"/>
+
+    <!--定义日志存放的位置，默认存放在项目启动的相对路径的目录-->
+    <property name="LOG_PATH" value="logs/auth"/>
+
+    <!-- 控制台输出 -->
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>${CONSOLE_LOG_PATTERN}</pattern>
+            <charset>utf-8</charset>
+        </encoder>
+    </appender>
+
+    <!-- 日志记录器，日期滚动记录 -->
+    <appender name="FILE_ERROR" class="ch.qos.logback.core.rolling.RollingFileAppender">
+
+        <!-- 正在记录的日志文件的路径及文件名 -->
+        <file>${LOG_PATH}/log_error.log</file>
+
+        <!-- 日志记录器的滚动策略，按日期，按大小记录 -->
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <!-- 归档的日志文件的路径，%d{yyyy-MM-dd}指定日期格式，%i指定索引 -->
+            <fileNamePattern>${LOG_PATH}/error/log-error-%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <!-- 每个文件最大大小 -->
+            <maxFileSize>10MB</maxFileSize>
+            <!-- 保留天数 -->
+            <maxHistory>30</maxHistory>
+            <!-- 总大小上限 -->
+            <totalSizeCap>2GB</totalSizeCap>
+        </rollingPolicy>
+
+        <!-- 追加方式记录日志 -->
+        <append>true</append>
+
+        <!-- 日志文件的格式 -->
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <pattern>${FILE_LOG_PATTERN}</pattern>
+            <charset>utf-8</charset>
+        </encoder>
+
+        <!-- 此日志文件只记录error级别的 -->
+        <filter class="ch.qos.logback.classic.filter.LevelFilter">
+            <level>error</level>
+            <onMatch>ACCEPT</onMatch>
+            <onMismatch>DENY</onMismatch>
+        </filter>
+    </appender>
+
+    <!-- 日志记录器，日期滚动记录 -->
+    <appender name="FILE_ALL" class="ch.qos.logback.core.rolling.RollingFileAppender">
+
+        <!-- 正在记录的日志文件的路径及文件名 -->
+        <file>${LOG_PATH}/log_total.log</file>
+
+        <!-- 日志记录器的滚动策略，按日期，按大小记录 -->
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <!-- 归档的日志文件的路径，%d{yyyy-MM-dd}指定日期格式，%i指定索引 -->
+            <fileNamePattern>${LOG_PATH}/total/log-total-%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <!-- 每个文件最大大小 -->
+            <maxFileSize>10MB</maxFileSize>
+            <!-- 保留天数 -->
+            <maxHistory>30</maxHistory>
+            <!-- 总大小上限 -->
+            <totalSizeCap>2GB</totalSizeCap>
+        </rollingPolicy>
+
+        <!-- 追加方式记录日志 -->
+        <append>true</append>
+
+        <!-- 日志文件的格式 -->
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <pattern>${FILE_LOG_PATTERN}</pattern>
+            <charset>utf-8</charset>
+        </encoder>
+    </appender>
+
+    <!-- 系统模块日志级别控制  -->
+    <logger name="com.zz" level="info"/>
+    <!-- Spring日志级别控制  -->
+    <logger name="org.springframework" level="warn"/>
+
+    <!--记录到文件时，记录两类一类是error日志，一个是所有日志-->
+    <root level="info">
+        <appender-ref ref="STDOUT"/>
+        <appender-ref ref="FILE_ERROR"/>
+        <appender-ref ref="FILE_ALL"/>
+    </root>
+
+</configuration>
+
+
