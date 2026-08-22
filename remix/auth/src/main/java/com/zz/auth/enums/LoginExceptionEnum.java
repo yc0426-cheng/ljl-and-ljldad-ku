@@ -12,7 +12,8 @@ import lombok.Getter;
 @Getter
 public enum LoginExceptionEnum implements AbstractBaseExceptionEnum {
     NOT_ENABLE(1, "账号未被启用"),
-    PASSWORD_ERROR(2, "密码错误")
+    PASSWORD_ERROR(2, "密码错误"),
+    NOT_LOGIN(3, "未登录或登录已过期")
     ;
 
     LoginExceptionEnum(Integer code, String message){

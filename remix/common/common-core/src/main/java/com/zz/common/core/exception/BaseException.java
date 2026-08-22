@@ -37,4 +37,22 @@ public sealed class BaseException extends RuntimeException
      */
     protected String errorMessage;
 
+    /**
+     * 获取错误编码
+     *
+     * @return 错误编码
+     */
+    public String getErrorCode() {
+        return errorCode;
+    }
+
+    /**
+     * 获取错误信息
+     *
+     * @return 错误信息
+     */
+    public String getErrorMessage() {
+        return errorMessage;
+    }
+
 }

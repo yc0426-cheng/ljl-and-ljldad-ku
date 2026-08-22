@@ -1,0 +1,13 @@
+# 项目依赖清单（与 python_service/.venv 中实际安装的版本一致）
+# 换电脑/重装环境时，在 python_service 目录下运行：pip install -r requirements.txt
+llama-index-core==0.14.24
+llama-index-embeddings-huggingface==0.7.0
+llama-index-llms-dashscope==0.6.1
+llama-index-vector-stores-chroma==0.5.5
+chromadb==1.5.9
+dashscope==1.22.2
+python-dotenv==1.2.3
+fastapi==0.141.1
+uvicorn==0.52.4
+pydantic-settings==2.15.0
+python-multipart==0.0.32
