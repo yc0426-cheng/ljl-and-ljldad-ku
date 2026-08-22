@@ -13,3 +13,16 @@ mybatis-plus:
   global-config:
     db-config:
       id-type: assign_id  # 全局配置主键策略为雪花算法
+
+spring:
+  data:
+    redis:
+      host: 127.0.0.1
+      password: 666666
+      port: 6379
+      timeout: 5000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0

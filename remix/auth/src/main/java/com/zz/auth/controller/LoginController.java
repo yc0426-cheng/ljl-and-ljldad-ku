@@ -28,4 +28,15 @@ public class LoginController {
     public String login(LoginDTO loginDTO){
         return loginService.login(loginDTO);
     }
+
+    // 校验token过期时间
+
+    /**
+     * 登出
+     */
+    public void logout(){
+        loginService.logout();
+    }
+
+    // 修改密码
 }
