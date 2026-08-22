@@ -4,10 +4,12 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 import com.zz.common.core.exception.BizException;
 import com.zz.common.core.pojo.LoginUserInfo;
+import com.zz.common.redis.service.RedisService;
 import com.zz.system.user.entity.SysUser;
 import com.zz.system.user.enums.SysUserExceptionEnum;
 import com.zz.system.user.service.SysUserService;
 import com.zz.system.user.mapper.SysUserMapper;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 /**
@@ -16,8 +18,11 @@ import org.springframework.stereotype.Service;
  * @createDate 2026-08-20 16:55:09
  */
 @Service
+@RequiredArgsConstructor
 public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser>
         implements SysUserService {
+
+    private final RedisService redisService;
 
     @Override
     public SysUser getUserInfoByAccount(String account) {
@@ -31,7 +36,8 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser>
     public void editError(Long userId) {
         SysUser sysUser = baseMapper.selectById(userId);
         if (sysUser.getPassErrorCount() + 1 > 3){
-            // todo 返回给前端 redis内增加一个5分钟的key-value 若是当前用户存在key-value时则显示具体可以登录时间
+            // 返回给前端 redis内增加一个5分钟的key-value 若是当前用户存在key-value时则显示具体可以登录时间
+            redisService.set("login_locked", true , 5);
             throw new BizException(SysUserExceptionEnum.OUT_OF_ERROR_COUNT);
         }
         // 修改已错误次数
