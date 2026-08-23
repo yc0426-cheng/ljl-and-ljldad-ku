@@ -16,8 +16,10 @@ remix/
 ├── pom.xml       # Maven 聚合父模块，统一管理版本和构建配置
 ├── gateway/      # 网关服务及当前后端启动入口
 ├── auth/         # 认证与授权模块
-└── front/        # 前端工程目录，不属于 Maven 后端模块
+└── front/        # 前端工程目录（Vue 3 + TypeScript），不属于 Maven 后端模块
 ```
+
+前端工程（Vue 3 + TypeScript + Vite）的开发操作流程、校验命令与写作规范详见 [`front/README.md`](front/README.md)。
 
 Maven 父子关系如下：
 

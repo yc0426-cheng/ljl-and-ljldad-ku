@@ -1,5 +1,6 @@
 import { createApp } from 'vue' // Vue 3 应用创建函数
 import { createPinia } from 'pinia' // 状态管理：全局共享登录态/token
+import 'element-plus/dist/index.css' // Element Plus 样式（ElMessage / ElMessageBox 等提示组件需要）
 import App from './App.vue' // 根组件
 import router from './router' // 路由（含登录守卫）
 
