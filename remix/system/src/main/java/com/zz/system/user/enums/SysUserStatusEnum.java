@@ -1,6 +1,5 @@
 package com.zz.system.user.enums;
 
-import com.baomidou.mybatisplus.annotation.EnumValue;
 import lombok.Getter;
 
 /**
@@ -23,7 +22,6 @@ public enum SysUserStatusEnum {
     /**
      * 值
      */
-    @EnumValue
     private final int value;
 
     /**

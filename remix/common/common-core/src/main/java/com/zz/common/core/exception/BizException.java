@@ -20,14 +20,4 @@ public final class BizException extends BaseException {
         super.errorCode = String.format("%03d", exceptionEnum.getErrorCode());
         super.errorMessage = exceptionEnum.getErrorMessage();
     }
-
-    /**
-     * 使用自定义错误信息构造（错误码默认为 500）
-     *
-     * @param message 错误信息
-     */
-    public BizException(String message) {
-        super(message);
-        super.errorMessage = message;
-    }
 }

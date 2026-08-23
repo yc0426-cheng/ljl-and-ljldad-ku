@@ -2,7 +2,6 @@ package com.zz.auth.controller;
 
 import com.zz.auth.pojo.LoginDTO;
 import com.zz.auth.service.LoginService;
-import com.zz.common.core.result.Result;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -33,14 +32,10 @@ public class LoginController {
     // 校验token过期时间
 
     /**
-     * 用户登出接口（需携带登录令牌）
-     *
-     * @return 统一返回结果
+     * 登出
      */
-    @PostMapping(name = "用户登出", path = "/auth/logout")
-    public Result<Void> logout(){
+    public void logout(){
         loginService.logout();
-        return Result.success();
     }
 
     // 修改密码
