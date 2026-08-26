@@ -1,0 +1,15 @@
+# 依赖与构建产物
+node_modules
+dist
+
+# 本地 npm 缓存（如使用 --cache 指定到项目内时）
+.npm-cache
+
+# 本地环境变量
+*.local
+
+# 日志
+*.log
+
+# ESLint 缓存（lint:eslint 使用了 --cache）
+.eslintcache

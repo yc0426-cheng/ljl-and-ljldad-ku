@@ -51,7 +51,7 @@ public class LoginService {
         BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
 
         // 密码错误，次数加一
-        if (encoder.matches(password, user.getPassword())) {
+        if (!encoder.matches(password, user.getPassword())) {
             sysUserService.editError(user.getUserId());
             throw new BizException(LoginExceptionEnum.PASSWORD_ERROR);
         }
