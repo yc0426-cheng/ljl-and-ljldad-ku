@@ -9,10 +9,13 @@ import com.zz.common.core.constant.RedisKeyConstant;
 import com.zz.common.core.context.LoginUserHolder;
 import com.zz.common.core.exception.BizException;
 import com.zz.common.core.pojo.LoginUserInfo;
+import com.zz.common.core.properties.JwtProperties;
 import com.zz.common.redis.service.RedisService;
 import com.zz.system.user.entity.SysUser;
+import com.zz.system.user.enums.SysUserStatusEnum;
 import com.zz.system.user.service.SysUserService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -22,13 +25,16 @@ import org.springframework.stereotype.Service;
  * @author yangcheng
  * @since 2026/8/20 10:45
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class LoginService {
     // todo 修改为api模块远程调用获取用户信息
     private final SysUserService sysUserService;
-
+    // redis服务
     private final RedisService redisService;
+    // jwt配置
+    private final JwtProperties jwtProperties;
 
     /**
      * 登录
@@ -43,8 +49,8 @@ public class LoginService {
         SysUser user = sysUserService.getUserInfoByAccount(account);
 
         // 判断用户是否被启用
-        if (user.getStatus().getValue() != 1) {
-            throw new BizException(LoginExceptionEnum.NOT_ENABLE);
+        if (user.getStatus() != SysUserStatusEnum.ENABLE) {
+            throw new BizException(LoginExceptionEnum.USER_LOCKED);
         }
 
         // BCrypt密码加密算法 不可逆 自带随机盐
@@ -67,6 +73,7 @@ public class LoginService {
                 .setIssuedAt(DateUtil.date())
                 // 设置过期时间 (exp)，半个小时后
                 .setExpiresAt(DateUtil.offsetHour(DateUtil.date(), 24))
+                .setKey(jwtProperties.getSecret().getBytes())
                 // 签名并生成 Token
                 .sign();
 
@@ -77,7 +84,7 @@ public class LoginService {
         userInfo.setToken(token);
 
         // 放置token至redis 并设置过期时间
-        redisService.set(RedisKeyConstant.TOKEN + token, userInfo, 60);
+        redisService.set(RedisKeyConstant.TOKEN + token, userInfo, 86400);
 
         return token;
     }

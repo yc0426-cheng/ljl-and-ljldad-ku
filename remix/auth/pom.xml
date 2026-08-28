@@ -85,7 +85,6 @@
             <groupId>com.zz.learn</groupId>
             <artifactId>system</artifactId>
             <version>1.0.0</version>
-            <scope>compile</scope>
         </dependency>
 
         <dependency>

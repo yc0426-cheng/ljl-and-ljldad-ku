@@ -1,0 +1,36 @@
+/** 全局样式 */
+
+/**
+ * 全局 box-sizing：让所有元素的 border 和 padding 计入声明的 width/height 内，
+ * 避免 60% + 40% + border 导致的横向溢出。
+ */
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+/**
+ * html / body 锁死在视口内：占满 100vw × 100vh，超出的内容一律裁切，
+ * 浏览器层面不出现滚动条。子容器若需滚动，自行在内部 overflow: auto。
+ *
+ * 注意：长列表页若需要整页滚动，请改回 overflow: auto 或在具体路由页覆写。
+ */
+html,
+body {
+    margin: 0;
+    padding: 0;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+/**
+ * Vue 挂载点：占满 body，作为内部路由页的布局容器。
+ * 不在此处设置 overflow，让具体页面自行决定是否滚动。
+ */
+#app {
+    width: 100%;
+    height: 100%;
+}
