@@ -1,6 +1,4 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router' // 路由创建函数 + history 模式 + 路由类型
-import { checkToken } from '@/api/auth' // token 校验接口（调后端查 redis）
-import { useUserStore } from '@/store/user' // 用户 store（校验失败时清登录态）
 
 // ---------------- 路由表 ----------------
 // 登录页写在这里：src/views/login/index.vue
@@ -28,49 +26,22 @@ const router = createRouter({
 
 // ---------------- 全局前置守卫：登录校验 ----------------
 // 每次路由跳转前都会执行，返回值决定放行或重定向
-//
-// 校验策略（避免"假登录态"）：
-// localStorage 里的 token 关机重启不会丢，但后端 redis 里的 token 会过期，
-// 所以"本地有 token"不等于"token 有效"，必须调后端 /auth/check 校验。
-// 校验通过后用内存标志 tokenValidated 记录，同一会话内后续跳转不再重复请求后端；
-// token 被清除（登出/校验失败踢出）时标志重置，下次进入页面会重新校验。
-let tokenValidated = false
-
-router.beforeEach(async (to) => {
+router.beforeEach((to) => {
   // 与 store 保持一致，从 localStorage 判断是否已登录
   const token = localStorage.getItem('token')
 
-  // 未登录：重置校验标志，且非登录页一律跳登录页
-  if (!token) {
-    tokenValidated = false
-    if (to.path !== '/login') {
-      return { path: '/login' }
-    }
-    return true
+  // 未登录且访问的不是登录页 → 强制跳转到登录页
+  if (!token && to.path !== '/login') {
+    return { path: '/login' }
   }
 
   // 已登录却访问登录页 → 跳回首页（避免重复登录）
-  if (to.path === '/login') {
+  if (token && to.path === '/login') {
     return { path: '/' }
   }
 
-  // 本会话内已校验过 → 直接放行
-  if (tokenValidated) {
-    return true
-  }
-
-  // 首次进入（刷新/重启浏览器后）：调后端校验 token 是否仍有效
-  try {
-    await checkToken()
-    // 有效：记录标志，放行
-    tokenValidated = true
-    return true
-  } catch {
-    // 无效（后端 redis 已过期/被拉黑）：清本地登录态，踢回登录页
-    tokenValidated = false
-    useUserStore().clearToken()
-    return { path: '/login' }
-  }
+  // 其余情况放行
+  return true
 })
 
 export default router

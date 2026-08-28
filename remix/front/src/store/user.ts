@@ -14,8 +14,8 @@ export interface UserInfo {
 }
 
 /**
- * 用户状态仓库：全局唯一，管理登录态与 token
- * 任何组件里通过 useUserStore() 获取同一个实例
+ * 用户状态仓库：全局唯一，管理登录态与 token。
+ * 任何组件里通过 useUserStore() 获取同一个实例。
  */
 export const useUserStore = defineStore('user', {
   // ---------------- 状态 ----------------
@@ -52,17 +52,6 @@ export const useUserStore = defineStore('user', {
       // 后续可增加 /auth/userInfo 之类接口获取后填到这里
       this.userInfo = { account }
       localStorage.setItem('userInfo', JSON.stringify(this.userInfo))
-    },
-
-    /**
-     * 清除本地登录态（token 校验失败被守卫踢出时使用）
-     * 与 logout 的区别：不调后端接口，只清内存 state 与 localStorage
-     */
-    clearToken(): void {
-      this.token = ''
-      this.userInfo = null
-      localStorage.removeItem('token')
-      localStorage.removeItem('userInfo')
     },
 
     /**

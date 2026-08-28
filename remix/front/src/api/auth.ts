@@ -28,18 +28,3 @@ export function login(account: string, password: string): Promise<string> {
 export function logout(): Promise<unknown> {
   return request.post('/api/auth/logout', undefined, { skipGlobalError: true })
 }
-
-/**
- * 校验token是否有效
- * 对应后端：LoginController#check
- *   POST /auth/check
- *   请求头：Authorization: Bearer <token>（request.ts 请求拦截器自动携带，无需手动传）
- *   返回：token 对应的用户信息；token 无效时后端抛业务异常 → 走 catch
- *
- * 用途：路由守卫在页面加载/跳转时校验 localStorage 里的旧 token，
- * 避免后端 token 已过期但前端仍有残留 token 导致的"假登录态"。
- */
-export function checkToken(): Promise<unknown> {
-  // skipGlobalError：校验失败由守卫自行处理（清 token 跳登录页），不弹全局提示
-  return request.post('/api/auth/check', undefined, { skipGlobalError: true })
-}

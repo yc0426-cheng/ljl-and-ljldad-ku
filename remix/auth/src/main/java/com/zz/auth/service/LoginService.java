@@ -2,7 +2,6 @@ package com.zz.auth.service;
 
 
 import cn.hutool.core.date.DateUtil;
-import cn.hutool.core.util.StrUtil;
 import cn.hutool.jwt.JWT;
 import com.zz.auth.enums.LoginExceptionEnum;
 import com.zz.auth.pojo.LoginDTO;
@@ -88,34 +87,6 @@ public class LoginService {
         redisService.set(RedisKeyConstant.TOKEN + token, userInfo, 86400);
 
         return token;
-    }
-
-    /**
-     * 校验token是否有效
-     * 有效标准：redis中存在 TOKEN:&lt;token&gt; 键（未过期），且不在登出黑名单中
-     *
-     * @param token 纯token（不含Bearer前缀，由controller剥离）
-     * @return token对应的用户信息
-     */
-    public LoginUserInfo checkToken(String token) {
-        // 空token直接无效
-        if (StrUtil.isBlank(token)) {
-            throw new BizException(LoginExceptionEnum.TOKEN_INVALID);
-        }
-
-        // 黑名单校验：已登出的token视为无效
-        Boolean inBlackList = redisService.getRedisTemplate()
-                .hasKey(RedisKeyConstant.BLACK_LIST_PREFIX + token);
-        if (inBlackList) {
-            throw new BizException(LoginExceptionEnum.TOKEN_INVALID);
-        }
-
-        // 从redis获取token对应的用户信息；取不到即已过期或不存在
-        LoginUserInfo userInfo = redisService.get(RedisKeyConstant.TOKEN + token, LoginUserInfo.class);
-        if (userInfo == null) {
-            throw new BizException(LoginExceptionEnum.TOKEN_INVALID);
-        }
-        return userInfo;
     }
 
     /**
