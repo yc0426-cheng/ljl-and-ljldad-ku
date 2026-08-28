@@ -1,0 +1,14 @@
+# 忽略编译文件
+**/target/
+
+# IDE
+.idea/
+*.iml
+
+# 运行时日志
+logs/
+*.log
+
+# 操作系统生成
+.DS_Store
+Thumbs.db

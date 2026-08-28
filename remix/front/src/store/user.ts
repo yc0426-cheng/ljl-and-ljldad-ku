@@ -55,6 +55,17 @@ export const useUserStore = defineStore('user', {
     },
 
     /**
+     * 清除本地登录态（token 校验失败被守卫踢出时使用）
+     * 与 logout 的区别：不调后端接口，只清内存 state 与 localStorage
+     */
+    clearToken(): void {
+      this.token = ''
+      this.userInfo = null
+      localStorage.removeItem('token')
+      localStorage.removeItem('userInfo')
+    },
+
+    /**
      * 登出：调后端接口并清除本地登录态
      */
     async logout(): Promise<void> {
