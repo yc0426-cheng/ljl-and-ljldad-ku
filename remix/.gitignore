@@ -1,4 +1,14 @@
-# 忽略编译文件
+# 编译/构建产物（覆盖所有 Maven 子模块的 target）
 **/target/
 
+# IDE
 .idea/
+*.iml
+
+# 运行时日志
+logs/
+*.log
+
+# 操作系统生成
+.DS_Store
+Thumbs.db
