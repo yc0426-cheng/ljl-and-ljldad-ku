@@ -33,8 +33,6 @@ public class LoginController {
         return loginService.login(loginDTO);
     }
 
-    // 校验token过期时间
-
     /**
      * 校验token是否有效
      * 前端 request.ts 请求拦截器自动携带 Authorization: Bearer &lt;token&gt;，
