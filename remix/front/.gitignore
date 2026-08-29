@@ -5,6 +5,9 @@ dist
 # 本地 npm 缓存（如使用 --cache 指定到项目内时）
 .npm-cache
 
+# Vite 开发缓存
+.vite
+
 # 本地环境变量
 *.local
 
