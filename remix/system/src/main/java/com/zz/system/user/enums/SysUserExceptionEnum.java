@@ -19,8 +19,13 @@ public enum SysUserExceptionEnum implements AbstractBaseExceptionEnum {
         this.errorMessage = message;
     }
 
+    /**
+     * 错误编码
+     */
     private final Integer errorCode;
 
-    /**/
+    /**
+     * 错误信息
+     */
     private final String errorMessage;
 }

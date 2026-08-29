@@ -3,6 +3,8 @@ import { createPinia } from 'pinia' // 状态管理：全局共享登录态/toke
 import 'element-plus/dist/index.css' // Element Plus 样式（ElMessage / ElMessageBox 等提示组件需要）
 import App from './App.vue' // 根组件
 import router from './router' // 路由（含登录守卫）
+import ElementPlus from 'element-plus' // element plus
+import './style/global.css' // 全局样式
 
 // 创建 Vue 应用实例
 const app = createApp(App)
@@ -11,6 +13,7 @@ const app = createApp(App)
 // 路由守卫里会用到 user store，因此 pinia 必须先注册。
 app.use(createPinia())
 app.use(router)
+app.use(ElementPlus)
 
 // 把应用挂载到 index.html 里的 #app 节点
 // （index.html 由 vite.config.ts 中的虚拟 HTML 插件动态生成，仓库中无 .html 文件）

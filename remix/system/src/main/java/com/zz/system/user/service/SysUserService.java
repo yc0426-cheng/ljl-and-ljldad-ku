@@ -1,6 +1,6 @@
 package com.zz.system.user.service;
 
-import com.baomidou.mybatisplus.spring.service.IService;
+import com.baomidou.mybatisplus.extension.service.IService;
 import com.zz.common.core.pojo.LoginUserInfo;
 import com.zz.system.user.entity.SysUser;
 

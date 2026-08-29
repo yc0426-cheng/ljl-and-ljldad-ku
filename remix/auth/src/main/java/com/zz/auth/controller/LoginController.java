@@ -6,6 +6,7 @@ import com.zz.auth.service.LoginService;
 import com.zz.common.core.pojo.LoginUserInfo;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -28,7 +29,7 @@ public class LoginController {
      * @return token
      */
     @PostMapping(name = "用户登录",path = "/auth/login")
-    public String login(LoginDTO loginDTO){
+    public String login(@RequestBody LoginDTO loginDTO){
         return loginService.login(loginDTO);
     }
 
@@ -52,6 +53,7 @@ public class LoginController {
     /**
      * 登出
      */
+    @PostMapping(name = "登出", path = "/auth/logout")
     public void logout(){
         loginService.logout();
     }

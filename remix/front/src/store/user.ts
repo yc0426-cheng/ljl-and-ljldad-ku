@@ -14,8 +14,8 @@ export interface UserInfo {
 }
 
 /**
- * 用户状态仓库：全局唯一，管理登录态与 token。
- * 任何组件里通过 useUserStore() 获取同一个实例。
+ * 用户状态仓库：全局唯一，管理登录态与 token
+ * 任何组件里通过 useUserStore() 获取同一个实例
  */
 export const useUserStore = defineStore('user', {
   // ---------------- 状态 ----------------

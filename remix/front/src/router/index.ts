@@ -1,6 +1,6 @@
-import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
-import {checkToken} from "@/api/auth";
-import {useUserStore} from "@/store/user"; // 路由创建函数 + history 模式 + 路由类型
+import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router' // 路由创建函数 + history 模式 + 路由类型
+import { checkToken } from '@/api/auth' // token 校验接口（调后端查 redis）
+import { useUserStore } from '@/store/user' // 用户 store（校验失败时清登录态）
 
 // ---------------- 路由表 ----------------
 // 登录页写在这里：src/views/login/index.vue

@@ -2,6 +2,7 @@ package com.zz.system.user.mapper;
 
 import com.zz.system.user.entity.SysUser;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import org.apache.ibatis.annotations.Mapper;
 
 /**
 * @author yangcheng
@@ -9,6 +10,7 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 * @createDate 2026-08-20 16:55:09
 * @Entity com.zz.system.entity.SysUser
 */
+@Mapper
 public interface SysUserMapper extends BaseMapper<SysUser> {
 
 }

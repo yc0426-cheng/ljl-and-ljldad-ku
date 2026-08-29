@@ -1,7 +1,6 @@
 package com.zz.system;
 
 import lombok.extern.slf4j.Slf4j;
-import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
@@ -12,7 +11,6 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  * @since 2026/8/20 11:08
  */
 @Slf4j
-@MapperScan("com.zz")
 @SpringBootApplication(scanBasePackages = "com.zz")
 public class SystemApplication {
 
