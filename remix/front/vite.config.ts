@@ -102,6 +102,7 @@ export default defineConfig({
 
     // 开发服务器配置
     server: {
+        host: '127.0.0.1',  // 显式绑定 IPv4，避免 Node.js 18+ 在 Windows 上默认只绑 [::1] 导致 Postman/浏览器走 IPv4 连不上
         port: 10000,
         proxy: {
             // 开发环境代理：把 /api 开头的请求转发到后端 auth 服务(端口 11000)

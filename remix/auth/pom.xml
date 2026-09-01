@@ -83,6 +83,12 @@
 
         <dependency>
             <groupId>com.zz.learn</groupId>
+            <artifactId>api-system</artifactId>
+            <version>1.0.0</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.zz.learn</groupId>
             <artifactId>system</artifactId>
             <version>1.0.0</version>
         </dependency>
