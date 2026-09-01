@@ -9,7 +9,7 @@
 ```shell
 cd front
 pnpm install   # 安装依赖
-pnpm dev       # 启动开发服务器（默认 http://localhost:5173）
+pnpm dev       # 启动开发服务器（默认 http://localhost:10000）
 ```
 
 ## 开发操作流程

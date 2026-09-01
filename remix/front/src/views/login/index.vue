@@ -17,18 +17,18 @@
       <!-- 账号输入框：v-model.trim 双向绑定并去掉首尾空格 -->
       <div class="form-group">
         <el-input
-            class="input-border"
             v-model.trim="form.account"
+            class="input-border"
             type="text"
             placeholder="请输入账号"
             @input="onAccountRuleInput"/>
         <el-input
-            class="input-border"
             v-model="form.password"
+            class="input-border"
             type="password"
             placeholder="请输入密码"
-            @input="onPasswordRuleInput"
-            show-password/>
+            show-password
+            @input="onPasswordRuleInput"/>
       </div>
       <!-- 登录按钮：loading 时禁用，防止重复提交 -->
       <div class="login-button">

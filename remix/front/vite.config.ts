@@ -4,7 +4,7 @@ import vue from '@vitejs/plugin-vue' // vue 单文件组件(SFC)编译插件
 
 /**
  * 虚拟 index.html 插件
- * 项目要求：不允许使用任何 .html 文件，因此仓库中不存放 index.html，
+ * 项目要求：不允许使用任何 .html 文件，因此仓库中不存放 index.html
  * 而是由本插件在运行时动态生成 HTML：
  *  - 开发模式：拦截根路径("/")请求，直接返回生成的 HTML
  *  - 生产构建：把生成的 HTML 作为产物文件输出到 dist/index.html
@@ -104,9 +104,8 @@ export default defineConfig({
     server: {
         port: 10000,
         proxy: {
-            // 开发环境代理：把 /api 开头的请求转发到后端 auth 服务(端口 11000)，
-            // 通过 rewrite 去掉 /api 前缀，让后端按 /auth/login 等原始路径接收。
-            // 未来接入 gateway 时，只需把 target 改成 gateway 地址（如 http://localhost:21000）即可，前端代码不动。
+            // 开发环境代理：把 /api 开头的请求转发到后端 auth 服务(端口 11000)
+            // 通过 rewrite 去掉 /api 前缀，让后端按 /auth/login 等原始路径接收
             '/api': {
                 target: 'http://localhost:11000',
                 changeOrigin: true,

@@ -50,9 +50,9 @@ remix/
 spring-boot-starter-parent
           ↓
         remix (pom)
-       ↙   ↓   ↘   ↘
+       ↙     ↓     ↘    ↘
     auth  gateway  system  common
-                       ↙   ↘
+                           ↙   ↘
               common-core  common-redis
 ```
 

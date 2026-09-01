@@ -1,0 +1,63 @@
+server:
+  port: 11000
+
+spring:
+  application:
+    name: gateway
+  cloud:
+    gateway:
+      enabled: true
+      # 自定义路由规则（核心）
+      routes:
+        # 认证中心：/auth/login、/auth/check、/auth/logout 等
+        - id: server-auth
+          # 暂未接入 Nacos，直连 auth 服务（13000）；后续接入注册中心后改为 lb://server-auth
+          uri: http://localhost:13000
+          predicates:
+            - Path=/auth/**
+          filters:
+            # 保留请求头中的 Host 信息，后端日志可看到真实来源
+            - PreserveHostHeader=true
+        # 系统服务：用户管理等接口
+        - id: server-system-route
+          # 暂未接入 Nacos，直连 system 服务（12000）；后续接入注册中心后改为 lb://server-system
+          uri: http://localhost:12000
+          predicates:
+            - Path=/system/**
+          filters:
+            - PreserveHostHeader=true
+      # 跨域：前端直连网关时放行 Vite 开发服务器（走 Vite 代理时同源，不触发跨域）
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowed-origin-patterns:
+              - 'http://localhost:10000'
+            allowed-methods:
+              - "*"
+            allowed-headers:
+              - "*"
+            allow-credentials: true
+
+  data:
+    redis:
+      host: 127.0.0.1
+      password: 666666
+      port: 6379
+      timeout: 5000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+      database: 1
+
+auth:
+  white-list:
+    - "POST /auth/login"
+    - "POST /auth/check"
+    - "POST /auth/logout"
+
+# 路由转发调试日志，排查网关问题时打开 写完全局过滤器(记录转发具体方法名以及模块名)删除
+logging:
+  level:
+    org.springframework.cloud.gateway: INFO
