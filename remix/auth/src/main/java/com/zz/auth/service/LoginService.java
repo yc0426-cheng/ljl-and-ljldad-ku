@@ -4,6 +4,9 @@ package com.zz.auth.service;
 import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.jwt.JWT;
+import com.zz.api.system.user.SysUserFeignClient;
+import com.zz.api.system.user.dto.SysUserFeignDTO;
+import com.zz.api.system.user.enums.SysUserStatusEnum;
 import com.zz.auth.enums.LoginExceptionEnum;
 import com.zz.auth.pojo.LoginDTO;
 import com.zz.common.core.constant.RedisKeyConstant;
@@ -12,9 +15,6 @@ import com.zz.common.core.exception.BizException;
 import com.zz.common.core.pojo.LoginUserInfo;
 import com.zz.common.core.properties.JwtProperties;
 import com.zz.common.redis.service.RedisService;
-import com.zz.system.user.entity.SysUser;
-import com.zz.system.user.enums.SysUserStatusEnum;
-import com.zz.system.user.service.SysUserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -30,8 +30,8 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 public class LoginService {
-    // todo 修改为api模块远程调用获取用户信息
-    private final SysUserService sysUserService;
+    // 远端调用接口
+    private final SysUserFeignClient sysUserFeignClient;
     // redis服务
     private final RedisService redisService;
     // jwt配置
@@ -47,7 +47,7 @@ public class LoginService {
         String account = loginDTO.getAccount();
         String password = loginDTO.getPassword();
         // 获取用户信息
-        SysUser user = sysUserService.getUserInfoByAccount(account);
+        SysUserFeignDTO user = sysUserFeignClient.getUserInfoByAccount(account);
 
         // 判断用户是否被启用
         if (user.getStatus() != SysUserStatusEnum.ENABLE) {
@@ -59,12 +59,12 @@ public class LoginService {
 
         // 密码错误，次数加一
         if (!encoder.matches(password, user.getPassword())) {
-            sysUserService.editError(user.getUserId());
+            sysUserFeignClient.editError(user.getUserId());
             throw new BizException(LoginExceptionEnum.PASSWORD_ERROR);
         }
 
         // 登录成功，重置密码错误次数
-        sysUserService.editLogin(user.getUserId());
+        sysUserFeignClient.editLogin(user.getUserId());
 
         // 生成token
         String token = JWT.create()
@@ -79,7 +79,7 @@ public class LoginService {
                 .sign();
 
         // 创建用户登录信息
-        LoginUserInfo userInfo = sysUserService.getLoginUserInfo(user.getUserId());
+        LoginUserInfo userInfo = sysUserFeignClient.getLoginUserInfo(user.getUserId());
 
         // 补充token
         userInfo.setToken(token);
