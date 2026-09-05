@@ -12,9 +12,8 @@ import org.springframework.web.bind.annotation.RequestParam;
  *
  * @author yangcheng
  * @since 2026/9/1 16:46
- * todo 新增nacos，删除硬编码url
  */
-@FeignClient(name = "system-user", url = "http://localhost:12000")
+@FeignClient(name = "system-server", path="/sys/user")
 public interface SysUserFeignClient {
 
     /**
@@ -23,7 +22,7 @@ public interface SysUserFeignClient {
      * @param account 账号
      * @return 用户信息
      */
-    @GetMapping("/sys/user/get/account")
+    @GetMapping("/get/account")
     SysUserFeignDTO getUserInfoByAccount(@RequestParam("account") String account);
 
     /**
@@ -31,7 +30,7 @@ public interface SysUserFeignClient {
      *
      * @param userId 用户id
      */
-    @PostMapping("/sys/user/edit/error")
+    @PostMapping("/edit/error")
     void editError(@RequestParam("userId") Long userId);
 
     /**
@@ -39,7 +38,7 @@ public interface SysUserFeignClient {
      *
      * @param userId 用户id
      */
-    @PostMapping("/sys/user/edit/login")
+    @PostMapping("/edit/login")
     void editLogin(@RequestParam("userId") Long userId);
 
     /**
@@ -48,6 +47,6 @@ public interface SysUserFeignClient {
      * @param userId 用户id
      * @return 用户登录信息
      */
-    @GetMapping("/sys/user/get/login/info")
+    @GetMapping("/get/login/info")
     LoginUserInfo getLoginUserInfo(@RequestParam("userId") Long userId);
 }

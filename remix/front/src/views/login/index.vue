@@ -28,7 +28,7 @@
             type="password"
             placeholder="请输入密码"
             show-password
-            @input="onPasswordRuleInput"/>
+        />
       </div>
       <!-- 登录按钮：loading 时禁用，防止重复提交 -->
       <div class="login-button">
@@ -203,15 +203,6 @@ const onAccountRuleInput = (event: Event): void => {
   }
 }
 
-/**
- * 登录密码输入规则
- *
- * 允许英文字母和数字
- */
-const onPasswordRuleInput = (event: Event): void => {
-  const input = event.target as HTMLInputElement
-}
-
 </script>
 
 <style scoped>
@@ -248,7 +239,7 @@ const onPasswordRuleInput = (event: Event): void => {
   justify-content: center;
   flex-direction: column; /** 纵向排列 */
   background: #ffffff;
-  border-radius: 15px ;
+  border-radius: 15px;
   margin: 20px 10px;
   padding: 20px;
   border: 1px solid #595959;
@@ -321,13 +312,13 @@ const onPasswordRuleInput = (event: Event): void => {
   z-index: 10000;
   padding: 24px 36px;
   background: #fff;
-  border: 3px solid #f56c6c;             /* 红色边框 */
+  border: 3px solid #f56c6c; /* 红色边框 */
   border-radius: 8px;
-  color: #f56c6c;                         /* 红色文字 */
+  color: #f56c6c; /* 红色文字 */
   font-size: 16px;
   font-weight: bold;
   text-align: center;
-  cursor: pointer;                        /* 提示用户点击可关闭 */
+  cursor: pointer; /* 提示用户点击可关闭 */
   box-shadow: 0 6px 24px rgba(245, 108, 108, 0.3);
   user-select: none;
 }
@@ -337,6 +328,7 @@ const onPasswordRuleInput = (event: Event): void => {
 .fail-fade-leave-active {
   transition: opacity 0.25s ease;
 }
+
 .fail-fade-enter-from,
 .fail-fade-leave-to {
   opacity: 0;
