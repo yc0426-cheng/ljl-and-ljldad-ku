@@ -34,16 +34,16 @@ remix/
 ├── pom.xml              # Maven 聚合父 POM，统一管理版本和构建配置
 ├── README.md            # 本文件
 ├── api/
-│   └── api-system/      # system 服务的 Feign 客户端定义（供 auth 调用）
-├── auth/                # 认证服务（登录、登出、JWT 签发与黑名单）
-├── system/              # 用户服务（用户管理、用户信息 CRUD）
+│   └── api-system/      # system 服务的 Feign 客户端定义（供 auth 调用，含日志落库通道 OperationLogFeignClient）
+├── auth/                # 认证服务（登录、登出、JWT 签发与黑名单；登录操作日志埋点）
+├── system/              # 用户服务（用户管理、用户信息 CRUD；用户操作日志统一落库）
 ├── common/              # 后端公共模块
-│   ├── common-core/     # 通用核心：异常体系、常量、上下文、POJO、配置属性、请求日志过滤器
+│   ├── common-core/     # 通用核心：异常体系、常量、上下文、POJO、配置属性、请求日志过滤器、操作追踪注解/TraceContext
 │   └── common-redis/    # Redis 工具：RedisService、RedisTemplate 配置
 ├── gateway/             # 网关（路由转发 + JWT 鉴权过滤器；路由、CORS 与白名单配置在 Nacos）
 ├── data/                # 项目部署/初始化数据
 │   ├── nacos/           # Nacos 配置导出包（dataId: gateway-server / auth-server / system-server / common-datasource）
-│   └── sql/system/      # system 相关 SQL（建表、初始化数据）
+│   └── sql/system/      # system 相关 SQL（三张表：用户表 + 操作日志主/子表，见 data/README.md）
 └── front/               # 前端工程（Vue 3 + TS + Vite），不属于 Maven 后端模块
 ```
 
@@ -66,13 +66,13 @@ spring-boot-starter-parent
 | 模块 | 职责 | 启动类 / 端口 |
 |---|---|---|
 | `gateway` | 统一网关入口：按 Nacos 路由转发 `/auth/**`、`/system/**`，JWT 鉴权过滤 + 白名单，CORS 跨域配置 | `GatewayApplication` / 11000 |
-| `auth` | 登录、登出、JWT 签发与黑名单管理（登录校验用户时经 Feign 调 system） | `AuthApplication` / 13000 |
-| `system` | 用户信息 CRUD、密码错误次数维护、登录用户信息查询 | `SystemApplication` / 12000 |
-| `common-core` | `BizException` / `BaseException` 异常体系、`RedisKeyConstant`、`LoginUserHolder`、`LoginUserInfo`、`JwtProperties`、`RequestLogFilter` | 不启动 |
+| `auth` | 登录、登出、JWT 签发与黑名单管理（登录校验用户时经 Feign 调 system）；登录操作日志埋点（`@TraceRequest`/`@TraceStep` + AOP，经 Feign 通知 system 落库） | `AuthApplication` / 13000 |
+| `system` | 用户信息 CRUD、密码错误次数维护、登录用户信息查询；用户操作日志统一落库（`sys_user_operation_log` / `sys_user_operation_step_log`） | `SystemApplication` / 12000 |
+| `common-core` | `BizException` / `BaseException` 异常体系、`RedisKeyConstant`、`LoginUserHolder`、`LoginUserInfo`、`JwtProperties`、`RequestLogFilter`；操作追踪公共件：`@TraceRequest` / `@TraceStep` 注解、`TraceContext`（ThreadLocal）、`TraceHeaders` 常量 | 不启动 |
 | `common-redis` | `RedisService`（封装 `RedisTemplate`）、`RedisConfig`（序列化器配置） | 不启动 |
-| `api-system` | system 服务的 Feign 客户端定义（供 auth 调用） | 不启动 |
+| `api-system` | system 服务的 Feign 客户端定义（供 auth 调用）：业务接口 `SysUserFeignClient` + 日志落库通道 `OperationLogFeignClient` | 不启动 |
 | `front` | 前端工程，独立 npm 项目 | `pnpm dev` / 默认 10000 |
-| `sql` | 数据库初始化脚本（实际存放于 `data/sql/system/`） | 不启动 |
+| `sql` | 数据库初始化脚本（实际存放于 `data/sql/system/`，含用户表与操作日志主/子表共 3 张） | 不启动 |
 
 ## 端口与开发链路
 
@@ -86,6 +86,42 @@ spring-boot-starter-parent
 | 浏览器 | — | 访问 `http://localhost:10000` 或 `http://127.0.0.1:10000`，前端 API 请求经 vite proxy 转发到 gateway |
 
 前端 `vite.config.ts` 把 `/api` 前缀代理到 `http://localhost:11000`（gateway），并 `rewrite` 去掉 `/api` 前缀，因此前端调 `/api/auth/login` 实际打到网关的 `http://localhost:11000/auth/login`；网关再按 Nacos 路由把 `/auth/**` 转发到 auth-server(13000)。gateway 的 CORS 白名单放行 `http://localhost:*` 与 `http://127.0.0.1:*`（Nacos dataId `gateway-server`），白名单之外的 Origin 会在网关层被直接拒绝（403、无后端日志）。
+
+## 用户操作日志与调用链追踪
+
+每个完整请求（前端 → 网关 → 分发到后端服务的入口请求）自动落一条「请求级」主表记录，并把请求内实际执行的方法调用记录成「方法级」步骤树，用于操作审计与排障（能定位到哪一步失败、耗时多少、改了哪个库/表）。
+
+### 数据落成什么样
+
+- **主表 `sys_user_operation_log`**：一行 = 一次完整请求；字段含 `user_id`（匿名入口登录成功后回填）、`status`（0 失败 / 1 成功）、`error_message`、`description`——由落库端在请求结束时按 `step_no` 先序把步骤拼成摘要，如 `login(auth)->getUserInfoByAccount(feign)->getUserInfoByAccount(system)`。
+- **子表 `sys_user_operation_step_log`**：一行 = 调用链上一个方法调用；`log_id` 关联主表，`parent_step_id` 表达嵌套层级（根步骤为 NULL），`step_no` 为请求内先序序号；写操作步骤可带 `target_db` / `target_table`（改了哪个库/表）；`status`：0 失败 / 1 成功 / 2 执行中。
+
+### 职责划分
+
+| 模块 | 角色 |
+|---|---|
+| `auth` | **埋点方**：`LoginService.login` 标 `@TraceRequest(module="auth")` 建主表 + 根步骤；`SysUserFeignClient` 方法标 `@TraceStep(module="feign")` 把每次远程调用记为一步；由 `OperationTraceAspect` + `OperationLogRecorder` 实现，经 `OperationLogFeignClient` 通知 system 落库 |
+| `system` | **落库方 + 被调续链方**：提供 `/sys/operation/log/*` 落库接口（`SysUserOperationLogController/Service` 直写 learn 库）；`TraceHeaderSeedFilter` 读取上游透传头、`SysUserServiceImpl` 方法标 `@TraceStep` 记录本模块自己的步骤 |
+| `common-core` | **公共件**：`@TraceRequest` / `@TraceStep` 注解、`TraceContext`（ThreadLocal 上下文）、`TraceHeaders` 请求头常量（`X-Trace-Log-Id` / `X-Trace-Parent-Step-Id`） |
+| `api-system` | `SysUserFeignClient`（业务 Feign，方法带步骤注解）、`OperationLogFeignClient`（日志落库通道，**不要标注任何追踪注解**，避免递归） |
+
+### 跨服务续链（为什么一棵树能横跨 auth 与 system）
+
+1. 入口模块发起 Feign 前，`auth` 的 `FeignClientTraceConfig` 提供的 `RequestInterceptor` 自动从本线程 `TraceContext` 取 `log_id` 与当前父步骤，写入请求头 `X-Trace-Log-Id` / `X-Trace-Parent-Step-Id`；
+2. 下游收到**带头请求** = 上游 feign 续链：不重复建主表，只把自己执行的步骤挂到上游父步骤下（system 的 `TraceHeaderSeedFilter` 负责）；收到**无头请求** = 网关直达的新请求：入口模块建主表 + 根步骤；
+3. 记日志失败一律 try/catch 降级，**绝不影响登录等业务**。
+
+### 扩展方式
+
+- 给某个方法记一步：标 `@TraceStep(module = "xxx", callType = "service", db = "learn", table = "sys_user")`（仅写方法带 db/table）；
+- 新增"网关直达入口"的模块：入口方法标 `@TraceRequest(module = "xxx")`，并参照 auth 提供本模块的记录器与切面（下游 Feign 头由公共件自动带上）；
+- 注解与上下文定义在 `common-core`，任何依赖它的模块都能直接引用。
+
+### 已知边界
+
+- 入口模块在 `finishRequest` 前崩溃，主表会停在 `status=2`「执行中」，可另加定时任务把超时记录置为失败；
+- `step_no` 用 MAX+1 分配（同请求步骤基本由单线程串行产生，冲突概率低；生产可给 `(log_id, step_no)` 加唯一索引兜底）；
+- `@TraceStep` 直接标在 Feign 接口方法上，个别版本/代理顺序下 AOP 可能不生效，实测无效时改用「门面包装」方式（详见 `TraceStep` 注解注释）。
 
 ## 构建与启动
 
