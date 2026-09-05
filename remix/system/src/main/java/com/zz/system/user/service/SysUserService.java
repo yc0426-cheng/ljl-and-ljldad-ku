@@ -39,4 +39,9 @@ public interface SysUserService extends IService<SysUser> {
      * @return 用户登录信息
      */
     LoginUserInfo getLoginUserInfo(Long userId);
+
+    /**
+     * 写入操作日志
+     */
+    void writeUserLog();
 }

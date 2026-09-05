@@ -9,11 +9,13 @@ import com.zz.api.system.user.dto.SysUserFeignDTO;
 import com.zz.api.system.user.enums.SysUserStatusEnum;
 import com.zz.auth.enums.LoginExceptionEnum;
 import com.zz.auth.pojo.LoginDTO;
+import com.zz.common.core.annotation.TraceRequest;
 import com.zz.common.core.constant.RedisKeyConstant;
 import com.zz.common.core.context.LoginUserHolder;
 import com.zz.common.core.exception.BizException;
 import com.zz.common.core.pojo.LoginUserInfo;
 import com.zz.common.core.properties.JwtProperties;
+import com.zz.common.core.trace.TraceContext;
 import com.zz.common.redis.service.RedisService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -39,15 +41,27 @@ public class LoginService {
 
     /**
      * 登录
+     * <p>标注 @TraceRequest：把本次登录请求记为主表一条记录（log_id），方法内部
+     * 对 system 的 Feign 调用因 SysUserFeignClient 方法上的 @TraceStep 被记为子步骤，
+     * 并随请求头透传给 system 续链。登录是匿名入口（user_id 未知），暂不补填 user_id；
+     * 需要时可在拿到 user 后通过 ThreadLocal 暂存并回填 endRequest 的 userId 参数。</p>
      *
      * @param loginDTO 登录的账户和密码
      * @return token
      */
+    @TraceRequest(module = "auth", callType = "service")
     public String login(LoginDTO loginDTO) {
         String account = loginDTO.getAccount();
         String password = loginDTO.getPassword();
         // 获取用户信息
         SysUserFeignDTO user = sysUserFeignClient.getUserInfoByAccount(account);
+
+        // 回填操作日志的 user_id：登录是匿名入口，建主表行时不知道是谁在操作，
+        // 查到用户后暂存到追踪上下文，请求结束时记录器随 finishRequest 回填主表 user_id
+        // （无论本次登录成功或失败，能定位到人，便于审计）
+        if (user != null) {
+            TraceContext.setCurrentUserId(user.getUserId());
+        }
 
         // 判断用户是否被启用
         if (user.getStatus() != SysUserStatusEnum.ENABLE) {

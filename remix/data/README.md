@@ -14,7 +14,9 @@ data/
 │   └── nacos_config_export_*.zip          # Nacos 控制台导出包,可直接导入
 └── sql/
     └── system/
-        └── sys_user.sql                   # 数据库建表 + 初始数据
+        ├── sys_user.sql                   # 用户表:建表 + admin 初始数据
+        ├── sys_user_operation_log.sql     # 用户操作记录表(请求级主表):一次完整请求一行
+        └── sys_user_operation_step_log.sql# 用户操作步骤记录表(方法级子表):调用链上每个方法一行
 ```
 
 ---
@@ -187,7 +189,11 @@ logging:
 
 ## 二、SQL 建表语句
 
-数据库名 `learn`,字符集 `utf8mb4`。当前仅 `sys_user` 一张表。
+数据库名 `learn`,字符集 `utf8mb4`,共 3 张表:`sys_user`(用户表)、`sys_user_operation_log`(用户操作记录表/请求级主表)、`sys_user_operation_step_log`(用户操作步骤记录表/方法级子表)。
+
+> 各表以 `data/sql/system/` 下的 SQL 文件为最终准(文件自带 `CREATE DATABASE IF NOT EXISTS` 与 `USE learn`)。
+
+### 1. sys_user(用户表)
 
 ```sql
 -- 创建数据库（如果已存在则忽略）
@@ -221,17 +227,76 @@ insert into learn.sys_user(user_id, account, name, password, phone, id_number, e
     );
 ```
 
+### 2. sys_user_operation_log(用户操作记录表 / 请求级主表)
+
+一行 = 一次完整请求(网关分发到后端的入口请求)。主键雪花算法,由落库方(system-server)写入,
+其他模块(auth 等)通过 Feign 通知落库,不直连本表。
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `log_id` | BIGINT PK | 请求记录 ID(雪花算法) |
+| `user_id` | BIGINT | 操作用户 ID。登录等匿名入口建行时为 NULL,查到用户后在请求结束时回填 |
+| `description` | varchar(1000) | 操作描述。请求结束时由落库端按子表 `step_no` 先序拼接,如 `login(auth)->getUserInfoByAccount(feign)->getUserInfoByAccount(system)` |
+| `operation_date` | DATETIME | 操作日期(请求开始时间) |
+| `operation_ip` | varchar(50) | 客户端 IP(网关透传 `X-Forwarded-For` 优先) |
+| `operation_method` | varchar(10) | 请求方法(HTTP 方法,如 POST) |
+| `error_message` | varchar(200) | 整次请求失败原因,成功为 NULL |
+| `status` | int | 0 = 失败,1 = 成功(2 执行中仅作写入中间态,正常结束前必回写为 0/1) |
+
+### 3. sys_user_operation_step_log(用户操作步骤记录表 / 方法级子表)
+
+一行 = 一次请求调用链上的一个方法调用,`log_id` 关联主表;支持嵌套调用树(`parent_step_id` 指向父步骤,
+根步骤为 NULL),跨服务时经请求头 `X-Trace-Log-Id` / `X-Trace-Parent-Step-Id` 透传续链。
+同样只由 system-server 落库,其他模块经 Feign 通知写入。
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `step_id` | BIGINT PK | 步骤记录 ID(雪花算法) |
+| `log_id` | BIGINT NOT NULL | 所属请求 log_id,关联 `sys_user_operation_log.log_id` |
+| `parent_step_id` | BIGINT | 父步骤 step_id,根步骤为 NULL(嵌套层级) |
+| `step_no` | INT NOT NULL | 请求内先序步骤序号,从 1 开始(根为 1,子步骤递增) |
+| `module_name` | varchar(50) | 执行模块,如 auth / feign / system |
+| `method_name` | varchar(100) | 方法名,如 login / getUserInfoByAccount |
+| `call_type` | varchar(20) | 调用方式,如 controller / service / feign |
+| `status` | int | 0 = 失败,1 = 成功,2 = 执行中(中间态) |
+| `error_message` | varchar(500) | 本步骤错误信息(仅失败时记录) |
+| `start_time` / `end_time` | datetime(3) | 步骤开始/结束时间(毫秒精度) |
+| `cost_ms` | BIGINT | 本步骤耗时毫秒 = end_time - start_time |
+| `target_db` / `target_table` | varchar | (可选)本步骤修改的目标库/表,如 learn / sys_user;只读步骤为 NULL |
+
+索引:`log_id`(查一次请求的全部步骤)、`(log_id, step_no)`(先序排序)、`parent_step_id`(查子调用)。
+
+数据形态示例(一次登录请求成功后的主表 + 子表):
+
+```text
+主表: log_id=1001, user_id=1, status=1,
+      description=login(auth)->getUserInfoByAccount(feign)->getUserInfoByAccount(system)
+
+子表: step_id=1 log_id=1001 parent=NULL  step_no=1 module=auth   method=login
+      step_id=2 log_id=1001 parent=1     step_no=2 module=feign  method=getUserInfoByAccount
+      step_id=3 log_id=1001 parent=2     step_no=3 module=system method=getUserInfoByAccount
+```
+
+> 说明:若旧环境已按早期版本建过 `sys_user_operation_step_log`,需手动补列 `target_db`/`target_table`
+> (ALTER 语句见 SQL 文件末尾注释),否则子表读写会报 `Unknown column 'target_db'`。
+
 ---
 
 ## 部署步骤
 
 ### 1. 准备 MySQL
 
+按顺序执行 3 个建表脚本(文件均带 `CREATE DATABASE IF NOT EXISTS` 与 `USE learn`,可重复执行):
+
 ```bash
 mysql -u root -p < data/sql/system/sys_user.sql
+mysql -u root -p < data/sql/system/sys_user_operation_log.sql
+mysql -u root -p < data/sql/system/sys_user_operation_step_log.sql
 ```
 
-执行后 `learn` 库会出现 `sys_user` 表 + 1 条 admin 初始数据(密码明文 `666666`,仅供本地调试)。
+执行后 `learn` 库出现 3 张表:`sys_user`(含 1 条 admin 初始数据,密码明文 `666666`,仅供本地调试)、
+`sys_user_operation_log`、`sys_user_operation_step_log`。若环境此前已按旧版建过步骤表,请补执行
+SQL 文件末尾注释中的 `ALTER TABLE ... ADD COLUMN target_db/target_table`。
 
 ### 2. 准备 Nacos
 

@@ -3,6 +3,7 @@ package com.zz.auth;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.cloud.openfeign.EnableFeignClients;
 
 /**
  * <p><b>认证服务-启动类</b></p>
@@ -12,6 +13,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  */
 @Slf4j
 @SpringBootApplication(scanBasePackages = "com.zz")
+@EnableFeignClients(basePackages = "com.zz")
 public class AuthApplication {
 
     /**

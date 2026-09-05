@@ -22,6 +22,12 @@
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
 
+        <!-- 提供 @Aspect/@Around 等注解与自动代理，支撑 OperationTraceAspect 切面埋点。 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-aop</artifactId>
+        </dependency>
+
         <!-- 提供用户名密码认证、请求授权和密码编码能力。 -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -105,11 +111,9 @@
             <version>1.0.0</version>
         </dependency>
 
-        <dependency>
-            <groupId>com.zz.learn</groupId>
-            <artifactId>system</artifactId>
-            <version>1.0.0</version>
-        </dependency>
+        <!-- 注意：不依赖整个 system 模块！auth 只通过 api-system 里的 Feign 客户端调 system，
+             若把 system 整个依赖进来，其 SystemApplication(@EnableFeignClients) 会被 auth 的
+             com.zz 扫描误当成配置类，导致 FeignClientSpecification 重复注册、启动报 BeanDefinitionOverrideException。 -->
 
         <dependency>
             <groupId>com.zz.learn</groupId>
