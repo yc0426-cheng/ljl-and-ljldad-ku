@@ -3,61 +3,25 @@ server:
 
 spring:
   application:
-    name: gateway
+    name: gateway-server
   cloud:
-    gateway:
-      enabled: true
-      # 自定义路由规则（核心）
-      routes:
-        # 认证中心：/auth/login、/auth/check、/auth/logout 等
-        - id: server-auth
-          # 暂未接入 Nacos，直连 auth 服务（13000）；后续接入注册中心后改为 lb://server-auth
-          uri: http://localhost:13000
-          predicates:
-            - Path=/auth/**
-          filters:
-            # 保留请求头中的 Host 信息，后端日志可看到真实来源
-            - PreserveHostHeader=true
-        # 系统服务：用户管理等接口
-        - id: server-system-route
-          # 暂未接入 Nacos，直连 system 服务（12000）；后续接入注册中心后改为 lb://server-system
-          uri: http://localhost:12000
-          predicates:
-            - Path=/system/**
-          filters:
-            - PreserveHostHeader=true
-      # 跨域：前端直连网关时放行 Vite 开发服务器（走 Vite 代理时同源，不触发跨域）
-      globalcors:
-        cors-configurations:
-          '[/**]':
-            allowed-origin-patterns:
-              - 'http://localhost:10000'
-            allowed-methods:
-              - "*"
-            allowed-headers:
-              - "*"
-            allow-credentials: true
-
-  data:
-    redis:
-      host: 127.0.0.1
-      password: 666666
-      port: 6379
-      timeout: 5000ms
-      lettuce:
-        pool:
-          max-active: 8
-          max-idle: 8
-          min-idle: 0
-      database: 1
-
-auth:
-  white-list:
-    - "POST /auth/login"
-    - "POST /auth/check"
-    - "POST /auth/logout"
-
-# 路由转发调试日志，排查网关问题时打开 写完全局过滤器(记录转发具体方法名以及模块名)删除
-logging:
-  level:
-    org.springframework.cloud.gateway: INFO
+    nacos:
+      server-addr: ${NACOS_SERVER_ADDR:127.0.0.1:8848}
+      username: ${NACOS_USERNAME:nacos}
+      password: ${NACOS_PASSWORD:nacos}
+      config:
+        # Nacos 命名空间 learn 的真实 ID(Nacos 控制台自动生成,不是显示名)
+        namespace: d7982b6e-cff5-4b20-b277-fb4c04dc8515
+        group: DEFAULT_GROUP
+        file-extension: yaml
+        refresh-enabled: true # 开启配置自动刷新
+      discovery:
+        # discovery 也必须显式指明同一命名空间,否则服务会注册到 public
+        namespace: d7982b6e-cff5-4b20-b277-fb4c04dc8515
+        group: DEFAULT_GROUP
+  config:
+    import:
+      # 加载顺序:先公共(优先级低,提供默认值),后私有(可覆盖公共)
+      # 注意:spring.config.import 模式下 namespace 必须显式传 URL 参数,不会从上面 spring.cloud.nacos.config.namespace 继承
+      - nacos:common-datasource?namespace=d7982b6e-cff5-4b20-b277-fb4c04dc8515&group=DEFAULT_GROUP
+      - nacos:gateway-server?namespace=d7982b6e-cff5-4b20-b277-fb4c04dc8515&group=DEFAULT_GROUP

@@ -13,6 +13,7 @@ import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
@@ -26,7 +27,7 @@ import java.util.Objects;
  * @since 2026/8/30 13:24
  */
 @Slf4j
-@Order(-999)  // 最先执行
+@Order(-1)  // 执行顺序 不得小于 -2
 @Component
 @RequiredArgsConstructor
 public class JwtAuthGlobalFilter implements GlobalFilter {

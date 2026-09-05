@@ -10,7 +10,7 @@ import com.zz.common.core.enums.error.AbstractBaseExceptionEnum;
  * @since 2026/8/20 17:56
  */
 public sealed class BaseException extends RuntimeException
-        permits BizException {
+        permits SysException, BizException {
 
     /**
      * 使用错误信息构造
