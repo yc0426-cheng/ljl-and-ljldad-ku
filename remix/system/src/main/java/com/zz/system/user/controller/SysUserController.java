@@ -61,4 +61,14 @@ public class SysUserController {
     public LoginUserInfo getLoginUserInfo(Long userId){
         return sysUserService.getLoginUserInfo(userId);
     }
+
+    /**
+     * 更新最后登录时间（登出时由 auth 经 feign 调用）
+     *
+     * @param userId 用户id
+     */
+    @PostMapping("/sys/user/edit/last-login-time")
+    public void setLastLoginTime(Long userId){
+        sysUserService.setLastLoginTime(userId);
+    }
 }

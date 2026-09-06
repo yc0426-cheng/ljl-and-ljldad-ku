@@ -1,5 +1,6 @@
 package com.zz.system.user.service.impl;
 
+import cn.hutool.core.date.DateTime;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.zz.common.core.annotation.TraceStep;
@@ -54,6 +55,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser>
     public void editLogin(Long userId) {
         SysUser sysUser = baseMapper.selectById(userId);
         sysUser.setPassErrorCount(0);
+        sysUser.setLastLoginTime(DateTime.now());
         baseMapper.updateById(sysUser);
     }
 
@@ -68,17 +70,15 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser>
         return loginUserInfo;
     }
 
-    /**
-     * {@inheritDoc}
-     *
-     * <p>待实现占位：本方法用于在修改 sys_user 的操作（editError / editLogin 等）后记录
-     * 用户操作日志。按「日志统一由 system 落库」的约定，这里应注入并调用
-     * {@code SysUserOperationLogService}（com.zz.system.operation 包）记录日志；
-     * 具体记录内容与链路拼装方式待需求确认后实现。</p>
-     */
     @Override
-    public void writeUserLog() {
-        // TODO 待实现：调用 SysUserOperationLogService 写入用户操作日志
+    @TraceStep(module = "system", callType = "service", db = "learn", table = "sys_user")
+    public void setLastLoginTime(Long userId) {
+        SysUser sysUser = baseMapper.selectById(userId);
+        if (sysUser == null) {
+            return;
+        }
+        sysUser.setLastLoginTime(DateTime.now());
+        baseMapper.updateById(sysUser);
     }
 }
 

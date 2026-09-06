@@ -11,7 +11,6 @@ import com.zz.auth.enums.LoginExceptionEnum;
 import com.zz.auth.pojo.LoginDTO;
 import com.zz.common.core.annotation.TraceRequest;
 import com.zz.common.core.constant.RedisKeyConstant;
-import com.zz.common.core.context.LoginUserHolder;
 import com.zz.common.core.exception.BizException;
 import com.zz.common.core.pojo.LoginUserInfo;
 import com.zz.common.core.properties.JwtProperties;
@@ -133,12 +132,23 @@ public class LoginService {
     }
 
     /**
-     * 登出
+     * 登出（幂等）
+     * <p>不再依赖 LoginUserHolder（本项目从未给它写入过值，登出时一定是 null），
+     * 改为与 checkToken 相同的机制：按请求头解析出的纯 token 从 redis 取用户信息。
+     * token 为空或 redis 中已不存在（过期/重复登出）时直接返回，不抛错——
+     * 前端在本地已做清理，登出接口保持幂等即可。</p>
+     *
+     * @param token 纯token（不含Bearer前缀，由controller剥离），可空
      */
-    public void logout() {
-        // 获取当前登录的用户信息
-        LoginUserInfo userInfo = LoginUserHolder.get();
-        String token = userInfo.getToken();
+    public void logout(String token) {
+        // 无 token 或已不在 redis：无需任何清理，直接返回（幂等）
+        if (StrUtil.isBlank(token)) {
+            return;
+        }
+        LoginUserInfo userInfo = redisService.get(RedisKeyConstant.TOKEN + token, LoginUserInfo.class);
+        if (userInfo == null) {
+            return;
+        }
 
         // 获取剩余过期时间
         Long ttl = redisService.getRedisTemplate().getExpire(token);
@@ -148,5 +158,14 @@ public class LoginService {
 
         // 将其添加黑名单常量池
         redisService.set(RedisKeyConstant.BLACK_LIST_PREFIX + token, userInfo, ttl + 1);
+
+        // 回写最后登录时间（feign 通知 system 更新 sys_user.last_login_time）
+        try {
+            if (userInfo.getUserId() != null) {
+                sysUserFeignClient.setLastLoginTime(userInfo.getUserId());
+            }
+        } catch (Exception e) {
+            log.error("登出-更新最后登录时间失败 userId={}", userInfo.getUserId(), e);
+        }
     }
 }

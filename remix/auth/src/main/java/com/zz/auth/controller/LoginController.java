@@ -52,10 +52,18 @@ public class LoginController {
 
     /**
      * 登出
+     * <p>与 check 同理：从请求头 Authorization 剥离 Bearer 后拿纯 token 交给 service。
+     * 不能依赖 LoginUserHolder（ThreadLocal）——本项目没有任何过滤器往里面写值，登出时必为 null。</p>
+     *
+     * @param authorization 请求头 Authorization（可空，空则由 service 幂等返回）
      */
     @PostMapping(name = "登出", path = "/auth/logout")
-    public void logout(){
-        loginService.logout();
+    public void logout(@RequestHeader(value = "Authorization", required = false) String authorization){
+        // 剥离 "Bearer " 前缀，得到纯token（与 check 保持同一写法）
+        String token = (StrUtil.isNotBlank(authorization) && authorization.startsWith("Bearer "))
+                ? authorization.substring(7)
+                : authorization;
+        loginService.logout(token);
     }
 
     // 修改密码

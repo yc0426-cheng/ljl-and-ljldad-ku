@@ -51,6 +51,15 @@ public interface SysUserFeignClient {
     void editLogin(@RequestParam("userId") Long userId);
 
     /**
+     * 更新最后登录时间（登出时回写 sys_user.last_login_time）
+     *
+     * @param userId 用户id
+     */
+    @TraceStep(module = "feign", callType = "feign")
+    @PostMapping("/edit/last-login-time")
+    void setLastLoginTime(@RequestParam("userId") Long userId);
+
+    /**
      * 创建用户登录信息
      *
      * @param userId 用户id

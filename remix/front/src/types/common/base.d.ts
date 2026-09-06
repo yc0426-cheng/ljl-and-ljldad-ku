@@ -9,10 +9,10 @@
  * @property updateTime - 更新时间
  */
 export interface BaseEntity {
-    createUser?: string
-    createTime?: string
-    updateUser?: string
-    updateTime?: string
+  createUser?: string
+  createTime?: string
+  updateUser?: string
+  updateTime?: string
 }
 
 /**
@@ -24,6 +24,6 @@ export interface BaseEntity {
  * @property currentPage - 当前页码
  */
 export interface BaseParam {
-    pageSize?: number
-    currentPage?: number
+  pageSize?: number
+  currentPage?: number
 }

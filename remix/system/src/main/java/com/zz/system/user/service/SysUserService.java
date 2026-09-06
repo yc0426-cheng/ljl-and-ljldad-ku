@@ -41,7 +41,9 @@ public interface SysUserService extends IService<SysUser> {
     LoginUserInfo getLoginUserInfo(Long userId);
 
     /**
-     * 写入操作日志
+     * 更新最后登录时间（登出时由 auth 经 feign 调用）
+     *
+     * @param userId 用户id
      */
-    void writeUserLog();
+    void setLastLoginTime(Long userId);
 }

@@ -6,9 +6,7 @@
   -->
   <div class="page">
     <div class="page-main-static">
-      <div class="page-picture">
-        懒得做(应该可以放点图片)
-      </div>
+      <div class="page-picture">懒得做(应该可以放点图片)</div>
     </div>
     <div class="page-main-login">
       <div class="login">
@@ -17,17 +15,18 @@
       <!-- 账号输入框：v-model.trim 双向绑定并去掉首尾空格 -->
       <div class="form-group">
         <el-input
-            v-model.trim="form.account"
-            class="input-border"
-            type="text"
-            placeholder="请输入账号"
-            @input="onAccountRuleInput"/>
+          v-model.trim="form.account"
+          class="input-border"
+          type="text"
+          placeholder="请输入账号"
+          @input="onAccountRuleInput"
+        />
         <el-input
-            v-model="form.password"
-            class="input-border"
-            type="password"
-            placeholder="请输入密码"
-            show-password
+          v-model="form.password"
+          class="input-border"
+          type="password"
+          placeholder="请输入密码"
+          show-password
         />
       </div>
       <!-- 登录按钮：loading 时禁用，防止重复提交 -->
@@ -49,10 +48,10 @@
 
 <script setup lang="ts">
 // ---------------- import 区 ----------------
-import {reactive, ref} from 'vue' // 组合式 API：响应式状态
-import {useRouter} from 'vue-router' // 路由跳转（登录成功后进入首页）
-import {useUserStore} from '@/store/user' // 用户状态仓库（登录动作封装在这里）
-import {ElLoading} from 'element-plus' // 全屏 loading 服务（点击登录后转圈遮罩）
+import { reactive, ref } from 'vue' // 组合式 API：响应式状态
+import { useRoute, useRouter } from 'vue-router' // 路由（读取回跳参数 + 登录成功后跳转）
+import { useUserStore } from '@/store/user' // 用户状态仓库（登录动作封装在这里）
+import { ElLoading } from 'element-plus' // 全屏 loading 服务（点击登录后转圈遮罩）
 import 'element-plus/dist/index.css'
 
 // ---------------- 常量 ----------------
@@ -65,6 +64,7 @@ const FAIL_BOX_VISIBLE_MS = 3000
 
 // ---------------- 实例化 ----------------
 const router = useRouter() // 路由实例
+const route = useRoute() // 当前路由（读取守卫跳来时携带的 ?redirect= 回跳地址）
 const userStore = useUserStore() // 用户状态仓库实例
 
 // ---------------- 响应式状态 ----------------
@@ -117,9 +117,9 @@ async function handleLogin(): Promise<void> {
   // 开始登录，禁用提交按钮，弹全屏遮罩
   loading.value = true
   const loadingInstance = ElLoading.service({
-    lock: true,                              // 锁定点击，防止重复提交
-    text: '登录中...',                        // 转圈下方文案
-    background: 'rgba(0, 0, 0, 0.7)'         // 半透明黑色背景
+    lock: true, // 锁定点击，防止重复提交
+    text: '登录中...', // 转圈下方文案
+    background: 'rgba(0, 0, 0, 0.7)' // 半透明黑色背景
   })
 
   // 记录开始时间，保证 loading 至少持续 MIN_LOADING_MS 毫秒
@@ -127,7 +127,7 @@ async function handleLogin(): Promise<void> {
   let loginFailed = false
   try {
     // 调 store 登录动作；成功后 token 已写入 localStorage，登录态由路由守卫接管
-    await userStore.login({account: form.account, password: form.password})
+    await userStore.login({ account: form.account, password: form.password })
   } catch (e) {
     loginFailed = true
     errorMsg.value = e instanceof Error ? e.message : '登录失败，请稍后重试'
@@ -136,7 +136,7 @@ async function handleLogin(): Promise<void> {
   // 至少等够 2 秒再关 loading（响应快也不能让遮罩一闪而过）
   const elapsed = Date.now() - start
   if (elapsed < MIN_LOADING_MS) {
-    await new Promise(resolve => setTimeout(resolve, MIN_LOADING_MS - elapsed))
+    await new Promise((resolve) => setTimeout(resolve, MIN_LOADING_MS - elapsed))
   }
 
   // 关闭 loading
@@ -153,8 +153,12 @@ async function handleLogin(): Promise<void> {
       showFail('错误次数已达上限，账号已被锁定，请 5 分钟后再试')
     }
   } else {
-    // 成功：跳转首页
-    router.push('/')
+    // 成功：优先回到守卫拦截时记录的原路径（?redirect=），否则进主页
+    // （redirect 仅接受本站内路径，避免被外部拼接地址利用）
+    const redirect = route.query.redirect
+    const target =
+      typeof redirect === 'string' && redirect.startsWith('/') ? redirect : '/home/index'
+    router.push(target)
   }
 }
 
@@ -202,11 +206,9 @@ const onAccountRuleInput = (event: Event): void => {
     errorMsg.value = ''
   }
 }
-
 </script>
 
 <style scoped>
-
 .page {
   min-height: 100vh;
   width: 100%;
@@ -228,7 +230,6 @@ const onAccountRuleInput = (event: Event): void => {
 .page-main-static .page-picture {
   display: flex;
   text-align: center;
-
 }
 
 .page-main-login {
@@ -333,5 +334,4 @@ const onAccountRuleInput = (event: Event): void => {
 .fail-fade-leave-to {
   opacity: 0;
 }
-
 </style>

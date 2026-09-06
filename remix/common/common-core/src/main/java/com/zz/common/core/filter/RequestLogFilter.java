@@ -39,7 +39,8 @@ public class RequestLogFilter implements Filter, Ordered {
             String path = httpRequest.getRequestURI();
             String userId = httpRequest.getHeader(HEADER_USER_ID);
             String account = httpRequest.getHeader(HEADER_ACCOUNT);
-            String userName = httpRequest.getHeader(HEADER_USER_NAME);
+            // 姓名由网关注入时做过 URL 编码（HTTP 头不支持中文，直接放中文会变成 '?'），这里还原后再打印
+            String userName = decodeHeader(httpRequest.getHeader(HEADER_USER_NAME));
             if (userId != null || account != null) {
                 log.info("模块收到请求 | 路径:{} {} | 用户:id={},account={},name={}",
                         method, path, userId, account, userName);
@@ -48,6 +49,25 @@ public class RequestLogFilter implements Filter, Ordered {
             }
         }
         chain.doFilter(request, response);
+    }
+
+    /**
+     * 请求头值解码：与网关 encodeHeader 对应，用 UTF-8 URLDecoder 还原；
+     * 解码失败（非 URL 编码的旧数据）时原样返回，避免打印异常
+     *
+     * @param value 可能已 URL 编码的头值
+     * @return 解码后的原值；null 返回 null
+     */
+    private String decodeHeader(String value) {
+        if (value == null) {
+            return null;
+        }
+        try {
+            return java.net.URLDecoder.decode(value, java.nio.charset.StandardCharsets.UTF_8);
+        } catch (IllegalArgumentException e) {
+            log.warn("用户姓名请求头解码失败，原样使用: {}", value);
+            return value;
+        }
     }
 
     @Override
