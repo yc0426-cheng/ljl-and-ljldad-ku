@@ -44,10 +44,12 @@ public class JwtAuthGlobalFilter implements GlobalFilter {
         String method = exchange.getRequest().getMethod().name();
         log.info("请求路径:{},{}, 请求IP地址:{}", method, path, getClientIP(exchange));
 
-        // 若是白名单的请求，直接放行
+        // 若是白名单的请求：直接放行，不再强制鉴权；
+        // 但若请求恰好携带了有效 token（如登录后的 /auth/check、/auth/logout），
+        // 仍尽力把用户信息注入下游请求头，让下游模块日志能显示真实用户（而非"匿名"）
         if (authWhiteListProperties.getWhiteList().contains(method + " " + path)) {
             log.info("请求路径在白名单中，跳过认证：{}", method + " " + path);
-            return chain.filter(exchange);
+            return chain.filter(maybeInjectUser(exchange));
         }
 
         // 获取token
@@ -67,14 +69,68 @@ public class JwtAuthGlobalFilter implements GlobalFilter {
         log.info("当前用户为:{}", userInfo);
 
         // 把用户信息透传给下游 —— mutate 请求头
-        ServerWebExchange mutated = exchange.mutate()
+        return chain.filter(injectUserHeaders(exchange, userInfo));
+    }
+
+    /**
+     * 白名单请求的"可选注入"：请求携带 Authorization 且能在 redis 查到用户时，
+     * 注入 X-User-* 头（让 /auth/check、/auth/logout 等白名单接口的日志能显示用户）；
+     * 无 token / token 无效 / redis 查询异常时原样返回（白名单仍放行，不影响登录等匿名入口）。
+     *
+     * @param exchange 请求上下文
+     * @return 注入后的 exchange；无需注入时原样返回
+     */
+    private ServerWebExchange maybeInjectUser(ServerWebExchange exchange) {
+        String token = extractToken(exchange);
+        if (Objects.isNull(token)) {
+            return exchange;
+        }
+        try {
+            LoginUserInfo userInfo = redisService.get(
+                    RedisKeyConstant.TOKEN + token, LoginUserInfo.class);
+            if (userInfo == null) {
+                // 白名单且 token 无效（如首次登录尚无 token）：保持匿名放行
+                return exchange;
+            }
+            log.info("白名单请求携带有效 token，注入用户:{}", userInfo);
+            return injectUserHeaders(exchange, userInfo);
+        } catch (Exception e) {
+            // 可选注入失败不阻断白名单请求
+            log.warn("白名单请求用户注入失败，保持匿名放行：{}", exchange.getRequest().getURI().getPath());
+            return exchange;
+        }
+    }
+
+    /**
+     * 把用户信息写入下游请求头（X-User-Id / X-Account / X-User-Name），供下游模块读取
+     * <p>姓名可能含中文，HTTP 头只允许 ISO-8859-1，直接写入会把中文替换成 '?'，
+     * 因此姓名先 URL 编码（纯 ASCII）再放行，下游读取时 URLDecoder 还原。</p>
+     *
+     * @param exchange  请求上下文
+     * @param userInfo  登录用户信息
+     * @return 携带用户头的 exchange
+     */
+    private ServerWebExchange injectUserHeaders(ServerWebExchange exchange, LoginUserInfo userInfo) {
+        return exchange.mutate()
                 .request(exchange.getRequest().mutate()
                         .header("X-User-Id", String.valueOf(userInfo.getUserId()))
                         .header("X-Account", userInfo.getAccount())
-                        .header("X-User-Name", userInfo.getName())
+                        .header("X-User-Name", encodeHeader(userInfo.getName()))
                         .build())
                 .build();
-        return chain.filter(mutated);
+    }
+
+    /**
+     * 请求头值安全编码：null 原样返回，非 null 用 UTF-8 URL 编码为纯 ASCII
+     *
+     * @param value 原始值（可能含中文）
+     * @return 编码后的 ASCII 值；null 返回 null
+     */
+    private String encodeHeader(String value) {
+        if (value == null) {
+            return null;
+        }
+        return java.net.URLEncoder.encode(value, java.nio.charset.StandardCharsets.UTF_8);
     }
 
     /**
