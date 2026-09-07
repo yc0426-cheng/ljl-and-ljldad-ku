@@ -43,7 +43,7 @@ remix/
 ├── gateway/             # 网关（路由转发 + JWT 鉴权过滤器；路由、CORS 与白名单配置在 Nacos）
 ├── data/                # 项目部署/初始化数据
 │   ├── nacos/           # Nacos 配置导出包（dataId: gateway-server / auth-server / system-server / common-datasource）
-│   └── sql/system/      # system 相关 SQL（三张表：用户表 + 操作日志主/子表，见 data/README.md）
+│   └── sql/system/      # system 相关 SQL（四张表：用户表 + 操作日志主/子表 + 系统菜单表，见 data/README.md）
 └── front/               # 前端工程（Vue 3 + TS + Vite），不属于 Maven 后端模块
 ```
 
@@ -72,7 +72,7 @@ spring-boot-starter-parent
 | `common-redis` | `RedisService`（封装 `RedisTemplate`）、`RedisConfig`（序列化器配置） | 不启动 |
 | `api-system` | system 服务的 Feign 客户端定义（供 auth 调用）：业务接口 `SysUserFeignClient` + 日志落库通道 `OperationLogFeignClient` | 不启动 |
 | `front` | 前端工程，独立 npm 项目 | `pnpm dev` / 默认 10000 |
-| `sql` | 数据库初始化脚本（实际存放于 `data/sql/system/`，含用户表与操作日志主/子表共 3 张） | 不启动 |
+| `sql` | 数据库初始化脚本（实际存放于 `data/sql/system/`，含用户表、操作日志主/子表、系统菜单表共 4 张） | 不启动 |
 
 ## 端口与开发链路
 

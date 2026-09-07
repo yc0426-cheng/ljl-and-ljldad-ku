@@ -66,7 +66,7 @@ public class JwtAuthGlobalFilter implements GlobalFilter {
             logGatewayError(exchange, FilterExceptionEnum.USER_NOT_EXISTS);
             return Mono.error(new BizException(FilterExceptionEnum.USER_NOT_EXISTS));
         }
-        log.info("当前用户为:{}", userInfo);
+        log.info("当前用户为:{}", userInfo.getAccount());
 
         // 把用户信息透传给下游 —— mutate 请求头
         return chain.filter(injectUserHeaders(exchange, userInfo));
@@ -92,7 +92,7 @@ public class JwtAuthGlobalFilter implements GlobalFilter {
                 // 白名单且 token 无效（如首次登录尚无 token）：保持匿名放行
                 return exchange;
             }
-            log.info("白名单请求携带有效 token，注入用户:{}", userInfo);
+            log.info("白名单请求携带有效 token，注入用户:{}", userInfo.getAccount());
             return injectUserHeaders(exchange, userInfo);
         } catch (Exception e) {
             // 可选注入失败不阻断白名单请求

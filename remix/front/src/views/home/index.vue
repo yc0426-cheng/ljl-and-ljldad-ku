@@ -6,7 +6,9 @@
     布局：左侧模块树（图书馆/学习进度/学习题目/用户管理）
          右侧 = 每日学习记录热力表（颜色深浅=学习进度，悬停显示具体记录）
               + 每日答题个数柱图（日/月/年切换）
-    登录态：由路由守卫保证进入本页时已登录；左下角为登出入口（onLogout）
+    登录态：由路由守卫保证进入本页时已登录
+    左下角用户区：点击打开个人设置浮层（UserSettingCard 组件：无遮罩/不虚化/可拖拽/Esc 关闭）；
+                右侧图标为登出入口
   -->
   <div class="home">
     <!-- ============ 左侧：模块树 ============ -->
@@ -18,6 +20,7 @@
 
       <el-tree
         ref="treeRef"
+        v-loading="menuLoading"
         class="menu"
         :data="menuTree"
         node-key="id"
@@ -26,27 +29,36 @@
         @node-click="onNodeClick"
       >
         <template #default="{ data }">
-          <span class="menu-node" :class="{ root: data.id === data.view }">
-            <el-icon><component :is="data.icon" /></el-icon>
+          <span class="menu-node">
+            <el-icon v-if="data.icon"><component :is="data.icon" /></el-icon>
             <span>{{ data.label }}</span>
           </span>
         </template>
       </el-tree>
 
-      <!-- 底部用户区：整块可点击进入个人设置（/user/setting）；右侧登出按钮用 .stop 不触发跳转 -->
-      <div
-        class="side-user"
-        title="个人设置"
-        role="button"
-        tabindex="0"
-        @click="goToUserSetting"
-        @keydown.enter="goToUserSetting"
-      >
-        <span class="avatar">{{ username.slice(0, 1) }}</span>
+      <!-- 底部用户区：整块可点击打开个人设置浮层；右侧登出按钮用 .stop 不冒泡 -->
+      <div class="user-area" @click="settingVisible = true">
+        <!-- 头像：有 avatar（OSS URL）显示图片，否则首字母兜底；共用 store，浮层改完自动联动更新 -->
+        <img
+          v-if="userStore.userInfo?.avatar"
+          class="ua-avatar"
+          :src="userStore.userInfo.avatar"
+          alt="头像"
+        />
+        <span v-else class="ua-avatar">
+          {{ (userStore.userInfo?.name || userStore.userInfo?.account || '未').slice(0, 1) }}
+        </span>
         <div class="u-info">
           <b>{{ username }}</b>
           <span>已登录 · 点击进入个人设置</span>
         </div>
+        <el-tooltip content="退出登录" placement="top">
+          <el-button text :loading="loggingOut" @click.stop="onLogout">
+            <el-icon>
+              <SwitchButton />
+            </el-icon>
+          </el-button>
+        </el-tooltip>
       </div>
     </aside>
 
@@ -198,6 +210,9 @@
         </div>
       </transition>
     </teleport>
+
+    <!-- 个人设置浮层：透传组件（无遮罩/不虚化），v-if 卸载干净，关闭后不留任何 DOM -->
+    <UserSetting v-if="settingVisible" @close="settingVisible = false" />
   </div>
 </template>
 
@@ -220,64 +235,244 @@ import {
   UserFilled,
   Collection,
   List,
-  Avatar
+  Avatar,
+  Setting,
+  SwitchButton
 } from '@element-plus/icons-vue'
+import type { Component } from 'vue'
 import { useUserStore } from '@/store/user'
 import { getHeatmap, getDayRecord, getAnswerStats } from '@/api/home'
-import type { IHeatCell, IDayRecord, IMenuNode, StatUnit } from '@/types/home'
+import { listMenuTree } from '@/api/system/menu'
+import { isMenuRouteReady, registerMenuRoutes } from '@/router'
+import type { SysMenu } from '@/types/system/menu'
+import type { IHeatCell, IDayRecord, StatUnit } from '@/types/home'
+// 个人设置浮层组件（含更改头像：el-dialog + el-upload → 后端转存 OSS）
+import UserSetting from '@/views/system/user/setting/UserSetting.vue'
 
 echarts.use([BarChart, GridComponent, TooltipComponent, MarkLineComponent, CanvasRenderer])
 
 // ---------------- 实例化 ----------------
 const router = useRouter()
-const userStore = useUserStore() // 登录用户信息（name 优先，缺失时回退到 account，避免显示"无名之人"）
-const username = computed(
-  () => userStore.userInfo?.name || userStore.userInfo?.account || '未知用户'
-)
+const userStore = useUserStore() // 登录用户信息（name 优先，缺失时回退到 account）
+const username = computed(() => userStore.userInfo?.name || userStore.userInfo?.account)
 
-// ---------------- 左侧模块树 ----------------
-const menuTree: IMenuNode[] = [
-  {
-    id: 'progress',
-    label: '学习进度',
-    icon: markRaw(DataLine),
-    view: 'progress',
-    children: [
-      { id: 'progress-daily', label: '每日记录', icon: markRaw(DataLine), view: 'progress' }
-    ]
-  },
-  {
-    id: 'library',
-    label: '图书馆',
-    icon: markRaw(Reading),
-    view: 'library',
-    children: [
-      { id: 'library-shelf', label: '我的书架', icon: markRaw(Collection), view: 'library' }
-    ]
-  },
-  {
-    id: 'quiz',
-    label: '学习题目',
-    icon: markRaw(EditPen),
-    view: 'quiz',
-    children: [{ id: 'quiz-list', label: '题库练习', icon: markRaw(List), view: 'quiz' }]
-  },
-  {
-    id: 'users',
-    label: '用户管理',
-    icon: markRaw(UserFilled),
-    view: 'users',
-    children: [{ id: 'users-list', label: '用户列表', icon: markRaw(Avatar), view: 'users' }]
-  }
-]
+/** 个人设置浮层显隐（UserSettingCard：透传浮层，无遮罩/不虚化/可拖拽/Esc 关闭） */
+const settingVisible = ref(false)
 
+// ---------------- 左侧模块树（由后端 sys_menu 下发） ----------------
+// 内置内容叶子的路由约定：命中以下路径时仍走"主区内切换内容"（保留原热力表等实现），
+// 其余叶子走路由跳转（能解析到组件则 router.push，否则跳"建设中"占位页）
+const BUILTIN_CONTENT: Record<string, string> = {
+  '/progress-daily': 'progress',
+  '/library-shelf': 'library',
+  '/quiz-list': 'quiz',
+  '/users-list': 'users'
+}
+
+/** 树节点展示结构（与后端 SysMenu 对应） */
+interface MenuNode {
+  id: number
+  label: string
+  icon?: Component
+  menuType: number
+  routePath?: string
+  component?: string
+  children?: MenuNode[]
+}
+
+/** 图标名 → 组件映射（对应 sys_menu.icon；未知图标给兜底 List） */
+const ICON_MAP: Record<string, Component> = {
+  DataLine: markRaw(DataLine),
+  Reading: markRaw(Reading),
+  EditPen: markRaw(EditPen),
+  UserFilled: markRaw(UserFilled),
+  Collection: markRaw(Collection),
+  List: markRaw(List),
+  Avatar: markRaw(Avatar),
+  Setting: markRaw(Setting)
+}
+
+const menuTree = ref<MenuNode[]>([])
+const menuLoading = ref(true)
 const treeRef = ref<TreeInstance>()
 const activeView = ref('progress')
 const activeLabel = ref('学习进度')
 
-function onNodeClick(data: IMenuNode): void {
-  activeView.value = data.view
-  activeLabel.value = data.label
+/** 后端菜单 → 树节点（icon 名映射成组件） */
+function toMenuNodes(list: SysMenu[]): MenuNode[] {
+  return list.map((m) => ({
+    id: m.menuId!,
+    label: m.menuName,
+    icon: m.icon ? ICON_MAP[m.icon] : undefined,
+    menuType: m.menuType,
+    routePath: m.routePath,
+    component: m.component,
+    children: m.children?.length ? toMenuNodes(m.children) : undefined
+  }))
+}
+
+/** 兜底菜单：后端拉不到（表未建/服务未起）时仍能展示旧内置模块，页面不白屏 */
+function buildFallbackMenus(): SysMenu[] {
+  return [
+    {
+      menuId: 1,
+      menuName: '学习进度',
+      menuType: 1,
+      icon: 'DataLine',
+      orderNo: 1,
+      visible: true,
+      children: [
+        {
+          menuId: 11,
+          menuName: '每日记录',
+          menuType: 2,
+          routePath: '/progress-daily',
+          icon: 'DataLine',
+          orderNo: 1,
+          visible: true
+        }
+      ]
+    },
+    {
+      menuId: 2,
+      menuName: '图书馆',
+      menuType: 1,
+      icon: 'Reading',
+      orderNo: 2,
+      visible: true,
+      children: [
+        {
+          menuId: 21,
+          menuName: '我的书架',
+          menuType: 2,
+          routePath: '/library-shelf',
+          icon: 'Collection',
+          orderNo: 1,
+          visible: true
+        }
+      ]
+    },
+    {
+      menuId: 3,
+      menuName: '学习题目',
+      menuType: 1,
+      icon: 'EditPen',
+      orderNo: 3,
+      visible: true,
+      children: [
+        {
+          menuId: 31,
+          menuName: '题库练习',
+          menuType: 2,
+          routePath: '/quiz-list',
+          icon: 'List',
+          orderNo: 1,
+          visible: true
+        }
+      ]
+    },
+    {
+      menuId: 4,
+      menuName: '用户管理',
+      menuType: 1,
+      icon: 'UserFilled',
+      orderNo: 4,
+      visible: true,
+      children: [
+        {
+          menuId: 41,
+          menuName: '用户列表',
+          menuType: 2,
+          routePath: '/users-list',
+          icon: 'Avatar',
+          orderNo: 1,
+          visible: true
+        }
+      ]
+    },
+    {
+      menuId: 5,
+      menuName: '系统管理',
+      menuType: 1,
+      icon: 'Setting',
+      orderNo: 5,
+      visible: true,
+      children: [
+        {
+          menuId: 51,
+          menuName: '菜单管理',
+          menuType: 2,
+          routePath: '/system/menu',
+          component: 'system/menu/index',
+          icon: 'Setting',
+          orderNo: 1,
+          visible: true
+        }
+      ]
+    }
+  ]
+}
+
+/**
+ * 加载菜单：拉后端树 → 渲染左侧 + 动态注册路由；失败用兜底菜单
+ */
+async function loadMenus(): Promise<void> {
+  menuLoading.value = true
+  try {
+    const list = await listMenuTree()
+    menuTree.value = toMenuNodes(list.filter((m) => m.visible !== false))
+    registerMenuRoutes(list) // 解析到组件的叶子注册成路由
+  } catch (e) {
+    console.warn('菜单加载失败，使用内置兜底菜单', e)
+    const fallback = buildFallbackMenus()
+    menuTree.value = toMenuNodes(fallback)
+    registerMenuRoutes(fallback)
+  } finally {
+    menuLoading.value = false
+    // 默认选中"每日记录"叶子（保留旧行为：进入主页默认看学习进度热力表）
+    const def = findLeafByRoute('/progress-daily')
+    if (def) {
+      treeRef.value?.setCurrentKey(def.id)
+    }
+  }
+}
+
+/** 在菜单树中查找指定路由的叶子节点 */
+function findLeafByRoute(routePath: string): MenuNode | undefined {
+  const walk = (nodes: MenuNode[]): MenuNode | undefined => {
+    for (const n of nodes) {
+      if (n.routePath === routePath) return n
+      if (n.children?.length) {
+        const hit = walk(n.children)
+        if (hit) return hit
+      }
+    }
+    return undefined
+  }
+  return walk(menuTree.value)
+}
+
+/** 点击菜单：目录仅展开；内置内容切 activeView；其余路由跳转/占位 */
+function onNodeClick(data: MenuNode): void {
+  if (data.menuType === 1) {
+    return
+  }
+  const path = data.routePath ?? ''
+  const view = BUILTIN_CONTENT[path]
+  if (view) {
+    activeView.value = view
+    activeLabel.value = data.label
+    return
+  }
+  if (!path) {
+    return
+  }
+  if (isMenuRouteReady(path)) {
+    void router.push(path)
+  } else {
+    // 组件未实现 → 跳"建设中"占位页，避免落到 404/被兜底重定向
+    void router.push({ path: '/system/coming-soon', query: { title: data.label, route: path } })
+  }
 }
 
 // ---------------- 每日学习记录（热力表） ----------------
@@ -475,7 +670,16 @@ onMounted(async () => {
     return
   }
 
-  treeRef.value?.setCurrentKey('progress') // 默认选中"学习进度"
+  // 头像本地兜底：用户信息接口暂未返回 avatar 字段时，按 userId 从 localStorage 恢复
+  //（与 UserSettingCard 内逻辑一致；后端接口返回 avatar 后此逻辑自动失效，无需删代码）
+  const info = userStore.userInfo
+  if (info && !info.avatar) {
+    const saved = localStorage.getItem(`avatar:${info.userId}`)
+    if (saved) userStore.userInfo = { ...info, avatar: saved }
+  }
+
+  // 左侧菜单：先加载后端菜单（渲染 + 动态注册路由），失败自动用兜底菜单
+  await loadMenus()
   cells.value = await getHeatmap(18)
   pageLoading.value = false
   tween('duration', todayCell.value?.duration ?? 0)
@@ -492,11 +696,6 @@ onBeforeUnmount(() => {
   chart?.dispose()
   chart = null
 })
-
-// ---------------- 底部用户区 → 个人设置 ----------------
-function goToUserSetting(): void {
-  router.push('/user/setting')
-}
 
 // ---------------- 退出登录 ----------------
 // 流程：确认弹窗 → 调 store.logout（调后端登出 + 清理本地 token/userInfo）→ 提示 → 回登录页。
@@ -528,7 +727,7 @@ async function onLogout(): Promise<void> {
   } finally {
     loggingOut.value = false
   }
-  router.replace('/login')
+  await router.replace('/login')
 }
 </script>
 
@@ -601,7 +800,8 @@ async function onLogout(): Promise<void> {
   font-weight: 600;
 }
 
-.side-user {
+/* ============ 底部用户区（点击打开个人设置浮层） ============ */
+.user-area {
   border-top: 1px solid #e3ded1;
   padding: 14px 20px;
   display: flex;
@@ -611,26 +811,30 @@ async function onLogout(): Promise<void> {
   transition: background 0.15s;
 }
 
-.side-user:hover {
+.user-area:hover {
   background: rgba(45, 90, 74, 0.06);
 }
 
-.side-user:focus-visible {
+.user-area:focus-visible {
   outline: 2px solid #2d5a4a;
   outline-offset: -2px;
 }
 
-.avatar {
-  width: 34px;
-  height: 34px;
+/* 用户区头像：有 avatar 显示图片，否则首字母 */
+.ua-avatar {
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
+  object-fit: cover;
   background: #2d5a4a;
   color: #f0ede2;
   display: flex;
   align-items: center;
   justify-content: center;
+  font-size: 18px;
   font-weight: 700;
   flex: none;
+  overflow: hidden;
 }
 
 .u-info {
@@ -663,7 +867,7 @@ async function onLogout(): Promise<void> {
 }
 
 .crumb {
-  font-size: 10.5px;
+  font-size: 10px;
   letter-spacing: 3px;
   color: #9aa093;
   margin: 0 0 8px;
@@ -749,7 +953,7 @@ async function onLogout(): Promise<void> {
 }
 
 .panel-head small {
-  font-size: 10.5px;
+  font-size: 10px;
   color: #9aa093;
   letter-spacing: 1px;
   margin-left: 12px;
@@ -761,20 +965,20 @@ async function onLogout(): Promise<void> {
   display: flex;
   align-items: center;
   gap: 5px;
-  font-size: 11.5px;
+  font-size: 11px;
   color: #9aa093;
 }
 
 .legend i {
   width: 14px;
   height: 14px;
-  border-radius: 3.5px;
+  border-radius: 3px;
   display: inline-block;
 }
 
 .today-mark {
-  outline: 1.5px solid #b5482f;
-  outline-offset: 1.5px;
+  outline: 1px solid #b5482f;
+  outline-offset: 1px;
   margin-left: 8px;
 }
 
@@ -801,7 +1005,7 @@ async function onLogout(): Promise<void> {
   width: 14px;
   height: 18px;
   line-height: 18px;
-  font-size: 10.5px;
+  font-size: 10px;
   color: #9aa093;
   text-align: right;
 }
@@ -819,7 +1023,7 @@ async function onLogout(): Promise<void> {
 
 .heat-month {
   height: 16px;
-  font-size: 10.5px;
+  font-size: 10px;
   color: #9aa093;
   white-space: nowrap;
 }
@@ -868,7 +1072,7 @@ async function onLogout(): Promise<void> {
 }
 
 .today {
-  outline: 1.5px solid #b5482f;
+  outline: 1px solid #b5482f;
   outline-offset: 2px;
 }
 
@@ -907,7 +1111,7 @@ async function onLogout(): Promise<void> {
   gap: 15px;
   padding: 8px 0;
   border-bottom: 1px solid #f0ede3;
-  font-size: 13.5px;
+  font-size: 13px;
 }
 
 .dd-item:last-child {
@@ -915,7 +1119,7 @@ async function onLogout(): Promise<void> {
 }
 
 .dd-time {
-  font-size: 11.5px;
+  font-size: 11px;
   color: #9aa093;
   width: 44px;
   flex: none;
@@ -1044,5 +1248,86 @@ async function onLogout(): Promise<void> {
 .tip-fade-enter-from,
 .tip-fade-leave-to {
   opacity: 0;
+}
+
+/* ============ 滚动条美化（贴合纸感绿主题） ============ */
+/* ---- 主区：右侧内容纵向滚动条 ---- */
+.main {
+  /* Firefox：细滚动条 + 静态配色（滑块/轨道） */
+  scrollbar-width: thin;
+  scrollbar-color: #c9d3c6 transparent;
+}
+
+/* Chrome / Edge / Safari */
+.main::-webkit-scrollbar {
+  width: 8px;
+}
+
+.main::-webkit-scrollbar-track {
+  background: transparent; /* 轨道透明，融入 #f5f2ea 底色 */
+}
+
+.main::-webkit-scrollbar-thumb {
+  background-color: #c9d3c6; /* 浅豆绿：对应热力图 lv1/lv2 色阶 */
+  border-radius: 8px; /* 胶囊形 */
+  border: 2px solid transparent; /* 透明描边收窄视觉宽度，留出呼吸感 */
+  background-clip: padding-box;
+}
+
+/* 鼠标在主区内时滑块加深一档（热力图 lv2） */
+.main:hover::-webkit-scrollbar-thumb {
+  background-color: #a7c7b0;
+}
+
+/* 悬停滑块本体：主题深绿 */
+.main::-webkit-scrollbar-thumb:hover {
+  background-color: #2d5a4a;
+}
+
+/* 按住拖动：点缀红，与柱图 emphasis 色呼应 */
+.main::-webkit-scrollbar-thumb:active {
+  background-color: #b5482f;
+}
+
+.main::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* ---- 顺手统一（可选）：左侧菜单纵向滚动条 ---- */
+.menu {
+  scrollbar-width: thin;
+  scrollbar-color: #d6e4d8 transparent;
+}
+
+.menu::-webkit-scrollbar {
+  width: 6px;
+}
+
+.menu::-webkit-scrollbar-thumb {
+  background-color: #d6e4d8;
+  border-radius: 6px;
+}
+
+.menu::-webkit-scrollbar-thumb:hover {
+  background-color: #6ba186;
+}
+
+/* ---- 顺手统一（可选）：热力表横向滚动条（周数多时出现） ---- */
+.heat-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: #d6e4d8 transparent;
+}
+
+.heat-scroll::-webkit-scrollbar {
+  height: 8px;
+}
+
+.heat-scroll::-webkit-scrollbar-thumb {
+  background-color: #d6e4d8;
+  border-radius: 8px;
+}
+
+.heat-scroll::-webkit-scrollbar-thumb:hover {
+  background-color: #6ba186;
 }
 </style>

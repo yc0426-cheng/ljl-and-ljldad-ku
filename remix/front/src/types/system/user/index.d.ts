@@ -28,3 +28,8 @@ export interface SysUser extends BaseEntity {
   /** 删除标记 */
   delFlag?: boolean
 }
+
+/** 头像上传结果：后端转存 OSS 后返回的公网访问地址 */
+export interface UploadAvatarResult {
+  url: string
+}

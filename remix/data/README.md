@@ -16,7 +16,8 @@ data/
     └── system/
         ├── sys_user.sql                   # 用户表:建表 + admin 初始数据
         ├── sys_user_operation_log.sql     # 用户操作记录表(请求级主表):一次完整请求一行
-        └── sys_user_operation_step_log.sql# 用户操作步骤记录表(方法级子表):调用链上每个方法一行
+        ├── sys_user_operation_step_log.sql# 用户操作步骤记录表(方法级子表):调用链上每个方法一行
+        └── sys_menu.sql                   # 系统菜单表:主页左侧菜单 + 动态路由(菜单管理)数据 + 种子
 ```
 
 ---
@@ -189,7 +190,7 @@ logging:
 
 ## 二、SQL 建表语句
 
-数据库名 `learn`,字符集 `utf8mb4`,共 3 张表:`sys_user`(用户表)、`sys_user_operation_log`(用户操作记录表/请求级主表)、`sys_user_operation_step_log`(用户操作步骤记录表/方法级子表)。
+数据库名 `learn`,字符集 `utf8mb4`,共 4 张表:`sys_user`(用户表)、`sys_user_operation_log`(用户操作记录表/请求级主表)、`sys_user_operation_step_log`(用户操作步骤记录表/方法级子表)、`sys_menu`(系统菜单/动态路由表)。
 
 > 各表以 `data/sql/system/` 下的 SQL 文件为最终准(文件自带 `CREATE DATABASE IF NOT EXISTS` 与 `USE learn`)。
 
@@ -280,23 +281,44 @@ insert into learn.sys_user(user_id, account, name, password, phone, id_number, e
 > 说明:若旧环境已按早期版本建过 `sys_user_operation_step_log`,需手动补列 `target_db`/`target_table`
 > (ALTER 语句见 SQL 文件末尾注释),否则子表读写会报 `Unknown column 'target_db'`。
 
+### 4. sys_menu(系统菜单 / 动态路由表)
+
+一行 = 一个菜单/路由节点。前端主页左侧菜单树由它下发;「系统管理 → 菜单管理」页负责对它增删改,
+即"在系统路由里管理加入的路由"。表结构与 `SysMenu` 实体对应,建表脚本自带种子数据
+(内置模块目录 + 系统管理/菜单管理)。
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `menu_id` | BIGINT PK | 菜单 ID(雪花算法) |
+| `parent_id` | BIGINT | 父菜单 ID,顶级为 NULL(嵌套层级) |
+| `menu_name` | varchar(50) | 菜单名称 |
+| `menu_type` | int | 1 = 目录(分组),2 = 菜单(叶子路由) |
+| `route_path` | varchar(200) | 叶子路由地址,如 /system/menu;内置内容页约定 /progress-daily 等(前端特判) |
+| `component` | varchar(200) | 叶子对应 src/views 相对路径,如 system/menu/index(前端据此动态注册路由) |
+| `icon` | varchar(50) | 图标名(对应 @element-plus/icons-vue) |
+| `order_no` | int | 排序号(小到大) |
+| `visible` | tinyint(1) | 是否在菜单显示 |
+| `status` | int | 1 启用 / 0 停用 |
+| `create_time` / `del_flag` | — | 创建时间 / 删除标记(删除为软删自身+子孙) |
+
 ---
 
 ## 部署步骤
 
 ### 1. 准备 MySQL
 
-按顺序执行 3 个建表脚本(文件均带 `CREATE DATABASE IF NOT EXISTS` 与 `USE learn`,可重复执行):
+按顺序执行 4 个建表脚本(文件均带 `CREATE DATABASE IF NOT EXISTS` 与 `USE learn`,可重复执行):
 
 ```bash
 mysql -u root -p < data/sql/system/sys_user.sql
 mysql -u root -p < data/sql/system/sys_user_operation_log.sql
 mysql -u root -p < data/sql/system/sys_user_operation_step_log.sql
+mysql -u root -p < data/sql/system/sys_menu.sql
 ```
 
-执行后 `learn` 库出现 3 张表:`sys_user`(含 1 条 admin 初始数据,密码明文 `666666`,仅供本地调试)、
-`sys_user_operation_log`、`sys_user_operation_step_log`。若环境此前已按旧版建过步骤表,请补执行
-SQL 文件末尾注释中的 `ALTER TABLE ... ADD COLUMN target_db/target_table`。
+执行后 `learn` 库出现 4 张表:`sys_user`(含 1 条 admin 初始数据,密码明文 `666666`,仅供本地调试)、
+`sys_user_operation_log`、`sys_user_operation_step_log`、`sys_menu`(含菜单种子数据)。若环境此前已按旧版建过步骤表,
+请补执行 SQL 文件末尾注释中的 `ALTER TABLE ... ADD COLUMN target_db/target_table`。
 
 ### 2. 准备 Nacos
 

@@ -25,6 +25,7 @@
         <module>system</module>
         <module>common</module>
         <module>api</module>
+        <module>file</module>
     </modules>
 
     <properties>
