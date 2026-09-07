@@ -1,37 +1,47 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router' // 路由创建函数 + history 模式 + 路由类型
 import { checkToken } from '@/api/auth' // token 校验接口（调后端查 redis）
 import { useUserStore } from '@/store/user' // 用户 store（校验失败时清登录态）
+import type { SysMenu } from '@/types/system/menu'
 
 // ---------------- 路由表 ----------------
-// 登录页写在这里：src/views/login/index.vue
-// 主页写在这里：src/views/home/index.vue（路径 /home/index）
-// 个人设置写在这里：src/views/user/setting/index.vue（路径 /user/setting）
-// 后续新增页面只需往 routes 里追加（组件懒加载，按需打包）
+// 静态路由：登录页、主页、个人设置、系统管理-菜单管理、动态路由占位页
+// 动态路由：登录后由菜单数据（sys_menu）动态注册（见 registerMenuRoutes）
 const routes: RouteRecordRaw[] = [
   {
     path: '/login',
     name: 'Login',
     // meta.public = true：唯一允许未登录访问的页面（守卫据此放行）
     meta: { public: true },
-    // 懒加载：访问时才加载登录页组件
     component: () => import('@/views/login/index.vue')
   },
   {
-    // 根路径直接重定向到主页，避免 '/' 与 '/home/index' 两处渲染同一页面
+    // 根路径直接重定向到主页
     path: '/',
     redirect: '/home/index'
   },
   {
-    // 主页：登录后的默认页（含左侧模块树 + 底部用户区/登出入口）
+    // 主页（整页式：左侧菜单树 + 右侧内容），左侧菜单由 sys_menu 下发
     path: '/home/index',
     name: 'Home',
     component: () => import('@/views/home/index.vue')
   },
   {
-    // 个人设置：点击左下角用户区进入；未登录时守卫会拦截，刷新（已登录）停留本页
+    // 个人设置
     path: '/user/setting',
     name: 'UserSetting',
-    component: () => import('@/views/user/setting/index.vue')
+    component: () => import('@/views/system/user/setting/UserSetting.vue')
+  },
+  {
+    // 系统管理 → 菜单管理（在系统路由中增删改动态路由的页面）
+    path: '/system/menu',
+    name: 'SysMenu',
+    component: () => import('@/views/system/menu/index.vue')
+  },
+  {
+    // 动态路由占位页：菜单里新加的路由组件未实现时跳这里，避免落到 404
+    path: '/system/coming-soon',
+    name: 'ComingSoon',
+    component: () => import('@/views/system/coming-soon/index.vue')
   },
   {
     // 兜底：未匹配的路径统一回主页（守卫会再判断是否已登录，未登录则踢回 /login）
@@ -46,26 +56,70 @@ const router = createRouter({
   routes
 })
 
+// ---------------- 动态路由注册（菜单数据驱动） ----------------
+// views 下所有组件索引：菜单 component 字段（如 system/menu/index）据此解析到真实组件
+const viewModules = import.meta.glob('/src/views/**/*.vue')
+// 已注册过的动态路由路径（去重）
+const dynamicPaths = new Set<string>()
+
+/**
+ * 根据菜单树注册"可解析组件"的叶子路由（幂等：已注册的跳过）
+ * 约定：菜单 component 形如 system/menu/index，会依次尝试
+ *   /src/views/system/menu/index.vue 与 /src/views/system/menu/index/index.vue
+ * 解析不到组件的叶子不注册 —— 点击时由主页跳"建设中"占位页。
+ *
+ * @param menus sys_menu 树
+ */
+export function registerMenuRoutes(menus: SysMenu[]): void {
+  const walk = (list: SysMenu[]): void => {
+    for (const menu of list) {
+      if (menu.menuType === 2 && menu.routePath && menu.component) {
+        const loader = resolveComponent(menu.component)
+        const name = `menu-${menu.routePath}`
+        if (loader && !dynamicPaths.has(menu.routePath) && !router.hasRoute(name)) {
+          router.addRoute({ path: menu.routePath, name, component: loader })
+          dynamicPaths.add(menu.routePath)
+        }
+      }
+      if (menu.children?.length) {
+        walk(menu.children)
+      }
+    }
+  }
+  walk(menus)
+}
+
+/**
+ * 某路径当前是否已是可用路由（静态路由或已动态注册）
+ *
+ * @param path 完整路由路径，如 /system/menu
+ * @returns true = 可直接 router.push
+ */
+export function isMenuRouteReady(path: string): boolean {
+  return router.getRoutes().some((r) => r.path === path)
+}
+
+/**
+ * 解析组件路径为懒加载函数
+ *
+ * @param componentPath views 下相对路径，如 system/menu/index
+ * @returns 懒加载函数；找不到返回 undefined
+ */
+function resolveComponent(componentPath: string): (() => Promise<unknown>) | undefined {
+  const exact = viewModules[`/src/views/${componentPath}.vue`]
+  const index = viewModules[`/src/views/${componentPath}/index.vue`]
+  return (exact ?? index) as unknown as (() => Promise<unknown>) | undefined
+}
+
 // ---------------- 全局前置守卫：登录校验 ----------------
-// 每次路由跳转前都会执行，返回值决定放行或重定向。
-//
-// 判定规则（避免"假登录态"）：
-// - 只有 meta.public 的路由（目前仅 /login）允许未登录访问；
-//   其余任何路径（/home/index、/user/setting、直接输入 URL、深链、兜底重定向）
-//   只要没有 token 一律重定向到登录页，并携带 ?redirect= 原路径，登录成功后回跳；
-// - localStorage 里的 token 关机重启不会丢，但后端 redis 里的 token 会过期，
-//   所以"本地有 token"不等于"token 有效"，首次进入必须调后端 /auth/check 校验，
-//   校验通过把后端返回的用户信息回写 store，刷新后个人设置页也有数据可显示；
-// - 校验通过后用内存标志 tokenValidated 记录，同一会话内后续跳转不再重复请求后端；
-// - token 被清除（登出/校验失败踢出）时标志重置，下次进入页面会重新校验。
+// 判定规则：只有 meta.public（/login）允许未登录；其余路径无 token 一律回登录页并带 redirect；
+// 本地有 token 不代表有效，首入调后端 /auth/check，通过后回写用户信息并放行。
 let tokenValidated = false
 
 router.beforeEach(async (to) => {
-  // 与 store 保持一致：从 store 读 token（store 初始化时读 localStorage）
   const userStore = useUserStore()
   const token = userStore.token
 
-  // 未登录：只有 public 页面放行；其余一律回登录页（带原路径便于登录后回跳）
   if (!token) {
     tokenValidated = false
     if (!to.meta.public) {
@@ -74,29 +128,22 @@ router.beforeEach(async (to) => {
     return true
   }
 
-  // 已登录却访问登录页 → 跳回主页（避免重复登录）
   if (to.path === '/login') {
     return { path: '/home/index', replace: true }
   }
 
-  // 本会话内已校验过 → 直接放行
   if (tokenValidated) {
     return true
   }
 
-  // 首次进入（刷新/重启浏览器/直接输入 URL 后）：调后端校验 token 是否仍有效
   try {
-    // checkToken 返回后端 LoginUserInfo（userId/account/name/token），
-    // 回写 store 并持久化，保证刷新后各页面能显示真实用户信息
     const userInfo = await checkToken()
     if (userInfo) {
       userStore.setUserInfo(userInfo)
     }
-    // 有效：记录标志，放行
     tokenValidated = true
     return true
   } catch {
-    // 无效（后端 redis 已过期/被拉黑）：清本地登录态，踢回登录页
     tokenValidated = false
     userStore.clearToken()
     return { path: '/login', replace: true }

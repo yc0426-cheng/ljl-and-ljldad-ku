@@ -11,6 +11,8 @@ export interface UserInfo {
   name?: string
   /** token */
   token?: string
+  /** 头像 */
+  avatar?: string
 }
 
 /**
@@ -72,7 +74,7 @@ export const useUserStore = defineStore('user', {
      */
     setUserInfo(info: Partial<UserInfo>): void {
       // 合并后仅用于展示；account 在登录/守卫校验流程中必有兜底值
-      this.userInfo = { ...(this.userInfo ?? {}), ...info } as UserInfo
+      this.userInfo = { ...this.userInfo, ...info } as UserInfo
       localStorage.setItem('userInfo', JSON.stringify(this.userInfo))
     },
 
