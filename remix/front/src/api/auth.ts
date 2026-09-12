@@ -13,6 +13,8 @@ export interface AuthUserInfo {
   name?: string
   /** token */
   token?: string
+  /** 头像（OSS 地址，存于 sys_user_misc 杂项表，后端拼进 LoginUserInfo 返回） */
+  avatar?: string
 }
 
 /**
@@ -29,7 +31,7 @@ export interface AuthUserInfo {
 export function login(account: string, password: string): Promise<string> {
   // skipGlobalError：登录失败的错误由登录页自行展示，避免与全局提示重复
   return request.post<string>(
-    '/api/auth/login',
+    '/auth/login',
     {
       account,
       password
@@ -46,7 +48,7 @@ export function login(account: string, password: string): Promise<string> {
  * 调用失败也无需前端兜底（store 内已 try/catch），本地清理照常执行。
  */
 export function logout(): Promise<unknown> {
-  return request.post('/api/auth/logout', undefined, { skipGlobalError: true })
+  return request.post('/auth/logout', undefined, { skipGlobalError: true })
 }
 
 /**
@@ -61,5 +63,5 @@ export function logout(): Promise<unknown> {
  */
 export function checkToken(): Promise<AuthUserInfo> {
   // skipGlobalError：校验失败由守卫自行处理（清 token 跳登录页），不弹全局提示
-  return request.post<AuthUserInfo>('/api/auth/check', undefined, { skipGlobalError: true })
+  return request.post<AuthUserInfo>('/auth/check', undefined, { skipGlobalError: true })
 }

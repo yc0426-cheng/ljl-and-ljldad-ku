@@ -2,7 +2,10 @@ package com.zz.system.user.mapper;
 
 import com.zz.system.user.entity.SysUser;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.zz.system.user.pojo.dto.SysUserDTO;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Update;
 
 /**
 * @author yangcheng
@@ -13,6 +16,7 @@ import org.apache.ibatis.annotations.Mapper;
 @Mapper
 public interface SysUserMapper extends BaseMapper<SysUser> {
 
+    void edit(@Param("dto") SysUserDTO dto);
 }
 
 

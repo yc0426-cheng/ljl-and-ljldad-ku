@@ -65,7 +65,7 @@ spring-boot-starter-parent
 
 | 模块 | 职责 | 启动类 / 端口 |
 |---|---|---|
-| `gateway` | 统一网关入口：按 Nacos 路由转发 `/auth/**`、`/system/**`，JWT 鉴权过滤 + 白名单，CORS 跨域配置 | `GatewayApplication` / 11000 |
+| `gateway` | 统一网关入口：按 Nacos 路由转发 `/auth/**`、`/system/**`、`/sys/**`，JWT 鉴权过滤 + 白名单，CORS 跨域配置 | `GatewayApplication` / 11000 |
 | `auth` | 登录、登出、JWT 签发与黑名单管理（登录校验用户时经 Feign 调 system）；登录操作日志埋点（`@TraceRequest`/`@TraceStep` + AOP，经 Feign 通知 system 落库） | `AuthApplication` / 13000 |
 | `system` | 用户信息 CRUD、密码错误次数维护、登录用户信息查询；用户操作日志统一落库（`sys_user_operation_log` / `sys_user_operation_step_log`） | `SystemApplication` / 12000 |
 | `common-core` | `BizException` / `BaseException` 异常体系、`RedisKeyConstant`、`LoginUserHolder`、`LoginUserInfo`、`JwtProperties`、`RequestLogFilter`；操作追踪公共件：`@TraceRequest` / `@TraceStep` 注解、`TraceContext`（ThreadLocal）、`TraceHeaders` 常量 | 不启动 |

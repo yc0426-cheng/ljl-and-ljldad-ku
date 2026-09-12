@@ -1,0 +1,146 @@
+/**
+ * 公共样式：左侧模块树 + 底部用户区（全站常驻布局）
+ * 由常驻布局 src/layout/index.vue 唯一引入：所有业务页面（主页 / 用户管理等）作为其子路由，
+ * 统一渲染在左侧树右侧的 .main 主区，页面切换时左侧树不重建。
+ */
+
+/* ============ 页面骨架：左树 + 右主区 ============ */
+.side-layout {
+  display: flex;
+  height: 100vh;
+  background: #f5f2ea;
+}
+
+/* ============ 左侧 ============ */
+.side {
+  width: 232px;
+  flex: none;
+  background: #f0ede3;
+  border-right: 1px solid #e3ded1;
+  display: flex;
+  flex-direction: column;
+}
+
+.side-brand {
+  padding: 20px 20px 16px;
+  border-bottom: 1px solid #e3ded1;
+}
+
+.side-brand b {
+  display: block;
+  font-size: 16px;
+  letter-spacing: 2px;
+  color: #22302a;
+}
+
+.side-brand span {
+  font-size: 9px;
+  letter-spacing: 3px;
+  color: #9aa093;
+}
+
+/* 菜单树 */
+.menu {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+  background: transparent;
+}
+
+.menu .el-tree {
+  background: transparent;
+  --el-tree-node-hover-bg-color: transparent;
+}
+
+.menu .el-tree-node__content {
+  height: 38px;
+  border-radius: 9px;
+  margin-bottom: 2px;
+}
+
+.menu .el-tree-node.is-current > .el-tree-node__content {
+  background: #2d5a4a;
+  color: #fff;
+}
+
+.menu-node {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 14px;
+}
+
+.menu-node.root {
+  font-weight: 600;
+}
+
+/* 菜单树纵向滚动条 */
+.menu {
+  scrollbar-width: thin;
+  scrollbar-color: #d6e4d8 transparent;
+}
+
+.menu::-webkit-scrollbar {
+  width: 6px;
+}
+
+.menu::-webkit-scrollbar-thumb {
+  background-color: #d6e4d8;
+  border-radius: 6px;
+}
+
+.menu::-webkit-scrollbar-thumb:hover {
+  background-color: #6ba186;
+}
+
+/* ============ 底部用户区（点击打开个人设置浮层） ============ */
+.user-area {
+  border-top: 1px solid #e3ded1;
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.user-area:hover {
+  background: rgba(45, 90, 74, 0.06);
+}
+
+.user-area:focus-visible {
+  outline: 2px solid #2d5a4a;
+  outline-offset: -2px;
+}
+
+/* 用户区头像：有 avatar 显示图片，否则首字母 */
+.ua-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: #2d5a4a;
+  color: #f0ede2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: 700;
+  flex: none;
+  overflow: hidden;
+}
+
+.u-info {
+  flex: 1;
+  line-height: 1.3;
+}
+
+.u-info b {
+  display: block;
+  font-size: 14px;
+}
+
+.u-info span {
+  font-size: 11px;
+  color: #9aa093;
+}

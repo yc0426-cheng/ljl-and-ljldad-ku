@@ -1,7 +1,8 @@
 import { defineStore } from 'pinia' // pinia 状态仓库定义函数
 import { login as loginApi, logout as logoutApi, checkToken } from '@/api/auth' // 登录/登出/token 校验接口
 
-// 用户信息结构：与后端 LoginUserInfo（userId / account / name / token）对应
+// 用户信息结构：与后端 LoginUserInfo（userId / account / name / token / avatar）对应；
+// phone/email/nickname/signature 为编辑表单预留，后端用户信息接口返回后经 setUserInfo 自动流入
 export interface UserInfo {
   /** 用户 id */
   userId?: number
@@ -11,8 +12,16 @@ export interface UserInfo {
   name?: string
   /** token */
   token?: string
-  /** 头像 */
+  /** 头像（OSS 地址，存于 sys_user_misc 杂项表，登录时由后端拼进 LoginUserInfo） */
   avatar?: string
+  /** 手机号码（sys_user，后端接口暂未返回） */
+  phone?: string
+  /** 邮箱（sys_user，后端接口暂未返回） */
+  email?: string
+  /** 昵称（sys_user_misc，后端接口暂未返回） */
+  nickname?: string
+  /** 个性签名（sys_user_misc，后端接口暂未返回） */
+  signature?: string
 }
 
 /**
@@ -54,15 +63,24 @@ export const useUserStore = defineStore('user', {
       this.userInfo = { account }
       localStorage.setItem('userInfo', JSON.stringify(this.userInfo))
 
-      // 尽力补齐用户信息（userId/name）：登录接口没返回用户信息，
-      // 这里复用 /auth/check 再取一次；失败不影响登录（已有 account 可用）
+      // 尽力补齐用户信息（userId/name/avatar）：登录接口没返回用户信息，
+      // 复用 /auth/check 再取一次；失败不影响登录（已有 account 可用）
       try {
-        const info = await checkToken()
-        if (info) {
-          this.setUserInfo(info)
-        }
+        await this.fetchUserInfo()
       } catch {
         // 忽略：基础信息已足够展示，不因补全失败而登录失败
+      }
+    },
+
+    /**
+     * 拉取用户信息：调 /auth/check 取后端 LoginUserInfo（userId/name/avatar），
+     * 合并写入 store（内存 + localStorage）。失败向上抛出，由调用方决定是否兜底。
+     * 登录后与路由守卫刷新校验时都会走这里，保证各页面拿到的是后端的最新数据。
+     */
+    async fetchUserInfo(): Promise<void> {
+      const info = await checkToken()
+      if (info) {
+        this.setUserInfo(info)
       }
     },
 

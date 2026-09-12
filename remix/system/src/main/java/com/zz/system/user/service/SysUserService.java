@@ -3,6 +3,11 @@ package com.zz.system.user.service;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.zz.common.core.pojo.LoginUserInfo;
 import com.zz.system.user.entity.SysUser;
+import com.zz.system.user.pojo.dto.SysUserDTO;
+import com.zz.system.user.pojo.param.SysUserParam;
+import com.zz.system.user.pojo.vo.SysUserVO;
+
+import java.util.List;
 
 /**
  * @author yangcheng
@@ -46,4 +51,32 @@ public interface SysUserService extends IService<SysUser> {
      * @param userId 用户id
      */
     void setLastLoginTime(Long userId);
+
+    /**
+     * 分页用户信息
+     *
+     * @return 用户列表
+     */
+    List<SysUserVO> page();
+
+    /**
+     * 获取用户信息列表
+     *
+     * @return 用户列表
+     */
+    List<SysUserVO> getList(SysUserParam param);
+
+    /**
+     * 新增用户
+     *
+     * @param dto 新增用户数据
+     */
+    void add(SysUserDTO dto);
+
+    /**
+     * 修改用户
+     *
+     * @param dto 修改用户信息
+     */
+    void edit(SysUserDTO dto);
 }

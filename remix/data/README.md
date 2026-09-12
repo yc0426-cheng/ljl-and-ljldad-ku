@@ -146,7 +146,9 @@ spring:
         - id: server-system
           uri: lb://system-server
           predicates:
-            - Path=/system/**
+            # 一条 Path 断言、逗号分隔 = 逻辑"或";写成两条 - Path 会被网关按 AND 组合,
+            # /system/** 与 /sys/** 不可能同时成立 -> 该路由永不匹配 -> 全部 404
+            - Path=/system/**,/sys/**
           filters:
             - PreserveHostHeader=true
       # 跨域:前端直连网关时放行 Vite 开发服务器(走 Vite 代理时同源,不触发跨域)
