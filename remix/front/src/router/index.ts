@@ -4,8 +4,8 @@ import { useUserStore } from '@/store/user' // 用户 store（校验失败时清
 import type { SysMenu } from '@/types/system/menu'
 
 // ---------------- 路由表 ----------------
-// 静态路由：登录页、主页、个人设置、系统管理-菜单管理、动态路由占位页
-// 动态路由：登录后由菜单数据（sys_menu）动态注册（见 registerMenuRoutes）
+// 静态路由：登录页 + 常驻布局（左侧模块树 + 右侧 router-view）及其子页面
+// 动态路由：登录后由菜单数据（sys_menu）动态注册为布局的子路由（见 registerMenuRoutes）
 const routes: RouteRecordRaw[] = [
   {
     path: '/login',
@@ -15,33 +15,41 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/login/index.vue')
   },
   {
-    // 根路径直接重定向到主页
+    // 常驻布局：左侧模块树 + 底部用户区全站常驻，业务页面统一渲染在右侧主区
     path: '/',
-    redirect: '/home/index'
-  },
-  {
-    // 主页（整页式：左侧菜单树 + 右侧内容），左侧菜单由 sys_menu 下发
-    path: '/home/index',
-    name: 'Home',
-    component: () => import('@/views/home/index.vue')
-  },
-  {
-    // 个人设置
-    path: '/user/setting',
-    name: 'UserSetting',
-    component: () => import('@/views/system/user/setting/UserSetting.vue')
-  },
-  {
-    // 系统管理 → 菜单管理（在系统路由中增删改动态路由的页面）
-    path: '/system/menu',
-    name: 'SysMenu',
-    component: () => import('@/views/system/menu/index.vue')
-  },
-  {
-    // 动态路由占位页：菜单里新加的路由组件未实现时跳这里，避免落到 404
-    path: '/system/coming-soon',
-    name: 'ComingSoon',
-    component: () => import('@/views/system/coming-soon/index.vue')
+    name: 'Layout',
+    component: () => import('@/layout/index.vue'),
+    children: [
+      {
+        // 根路径直接重定向到主页
+        path: '',
+        redirect: '/home/index'
+      },
+      {
+        // 主页（右侧内容：学习进度热力表等），左侧菜单由布局渲染，sys_menu 下发
+        path: '/home/index',
+        name: 'Home',
+        component: () => import('@/views/home/index.vue')
+      },
+      {
+        // 个人设置
+        path: '/user/setting',
+        name: 'UserSetting',
+        component: () => import('@/views/system/user/setting/UserSetting.vue')
+      },
+      {
+        // 系统管理 → 菜单管理（在系统路由中增删改动态路由的页面）
+        path: '/system/menu',
+        name: 'SysMenu',
+        component: () => import('@/views/system/menu/index.vue')
+      },
+      {
+        // 动态路由占位页：菜单里新加的路由组件未实现时跳这里，避免落到 404
+        path: '/system/coming-soon',
+        name: 'ComingSoon',
+        component: () => import('@/views/system/coming-soon/index.vue')
+      }
+    ]
   },
   {
     // 兜底：未匹配的路径统一回主页（守卫会再判断是否已登录，未登录则踢回 /login）
@@ -76,8 +84,14 @@ export function registerMenuRoutes(menus: SysMenu[]): void {
       if (menu.menuType === 2 && menu.routePath && menu.component) {
         const loader = resolveComponent(menu.component)
         const name = `menu-${menu.routePath}`
-        if (loader && !dynamicPaths.has(menu.routePath) && !router.hasRoute(name)) {
-          router.addRoute({ path: menu.routePath, name, component: loader })
+        if (
+          loader &&
+          !dynamicPaths.has(menu.routePath) &&
+          !router.hasRoute(name) &&
+          !isMenuRouteReady(menu.routePath) // 已有同名静态路由（如 /system/menu）不再重复注册
+        ) {
+          // 挂在常驻布局 Layout 下：动态页面同样渲染在左侧树右侧的主区
+          router.addRoute('Layout', { path: menu.routePath, name, component: loader })
           dynamicPaths.add(menu.routePath)
         }
       }

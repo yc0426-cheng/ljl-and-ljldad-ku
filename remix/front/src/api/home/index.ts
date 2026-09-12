@@ -32,7 +32,7 @@ export function progressLevel(progress: number): HeatLevel {
  * 对应后端（规划）：HomeApiController#heatmap
  */
 export function getHeatmap(weeks = 18): Promise<IHeatCell[]> {
-  if (!USE_MOCK) return request.get<IHeatCell[]>('/api/home/heatmap', { params: { weeks } })
+  if (!USE_MOCK) return request.get<IHeatCell[]>('/home/heatmap', { params: { weeks } })
   return mockHeatmap(weeks)
 }
 
@@ -41,13 +41,13 @@ export function getHeatmap(weeks = 18): Promise<IHeatCell[]> {
  * 视图层已按日期做缓存，同一格不会重复请求
  */
 export function getDayRecord(date: string): Promise<IDayRecord> {
-  if (!USE_MOCK) return request.get<IDayRecord>('/api/home/day-record', { params: { date } })
+  if (!USE_MOCK) return request.get<IDayRecord>('/home/day-record', { params: { date } })
   return mockDayRecord(date)
 }
 
 /** 答题个数统计：unit = day | month | year */
 export function getAnswerStats(unit: StatUnit): Promise<IAnswerStats> {
-  if (!USE_MOCK) return request.get<IAnswerStats>('/api/home/answer-stats', { params: { unit } })
+  if (!USE_MOCK) return request.get<IAnswerStats>('/home/answer-stats', { params: { unit } })
   return mockAnswerStats(unit)
 }
 

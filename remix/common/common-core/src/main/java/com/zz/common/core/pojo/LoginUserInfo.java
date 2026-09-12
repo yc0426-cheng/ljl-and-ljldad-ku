@@ -27,6 +27,11 @@ public class LoginUserInfo {
     private String name;
 
     /**
+     * 头像（OSS 地址，存于 sys_user_misc 杂项表，登录时拼进本对象）
+     */
+    private String avatar;
+
+    /**
      * token
      */
     private String token;

@@ -19,11 +19,15 @@
       @pointerdown="onDragStart"
     >
       <div v-if="showDragTip" class="drag-tip">
-        <el-icon><Rank /></el-icon>
+        <el-icon>
+          <Rank />
+        </el-icon>
       </div>
       <!-- 关闭按钮 -->
       <button class="close-btn" type="button" aria-label="关闭" @click="emit('close')">
-        <el-icon><Close /></el-icon>
+        <el-icon>
+          <Close />
+        </el-icon>
       </button>
 
       <div class="head">
@@ -58,8 +62,7 @@
       </el-descriptions>
       <div class="actions">
         <!-- 已在主页上，关闭浮层即“返回主页” -->
-        <el-button type="primary" plain @click="emit('close')">返回主页</el-button>
-        <el-button type="primary" plain>修改用户信息</el-button>
+        <el-button type="primary" plain @click="openSettingForm">修改用户信息</el-button>
         <el-button type="danger" plain :loading="loggingOut" @click="onLogout">退出登录</el-button>
       </div>
     </div>
@@ -86,7 +89,9 @@
         :on-change="onFileChange"
       >
         <el-button type="primary" plain>
-          <el-icon class="mr4"><Plus /></el-icon>
+          <el-icon class="mr4">
+            <Plus />
+          </el-icon>
           选择图片
         </el-button>
       </el-upload>
@@ -104,7 +109,10 @@
       </template>
     </el-dialog>
   </Teleport>
+
+  <UserSettingForm v-model="openSettingVisible" />
 </template>
+
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
@@ -113,6 +121,8 @@ import type { UploadFile, UploadInstance } from 'element-plus'
 import { Close, Plus, Rank } from '@element-plus/icons-vue'
 import { useUserStore } from '@/store/user'
 import { uploadApi } from '@/api/system/user'
+import UserSettingForm from '@/views/system/user/setting/UserSettingForm.vue'
+
 const emit = defineEmits<{ (e: 'close'): void }>()
 const router = useRouter()
 const userStore = useUserStore()
@@ -129,6 +139,8 @@ const uploadRef = ref<UploadInstance>()
 const selectedFile = ref<File | null>(null)
 /** 本地预览地址（blob:URL，仅用于弹窗内预览） */
 const avatarPreview = ref('')
+/** 表单页面的状态 */
+const openSettingVisible = ref(false)
 // 展示名：name 优先，缺失回退 account
 const displayName = computed(
   () => userStore.userInfo?.name || userStore.userInfo?.account || '未知用户'
@@ -180,6 +192,7 @@ async function onUploadAvatar(): Promise<void> {
     uploading.value = false
   }
 }
+
 /** 弹窗关闭：清理预览与选中文件（回收 blob 地址） */
 function resetAvatarDialog(): void {
   if (avatarPreview.value) URL.revokeObjectURL(avatarPreview.value)
@@ -187,18 +200,21 @@ function resetAvatarDialog(): void {
   selectedFile.value = null
   uploadRef.value?.clearFiles()
 }
+
 // ---------------- 卡片拖拽（默认屏幕正中 + 可拖动） ----------------
 const cardRef = ref<HTMLElement | null>(null)
 const isDragging = ref(false)
 const cardReady = ref(false)
 const hasDragged = ref(false)
 const pos = reactive({ x: 0, y: 0 })
+
 function centerCard(): void {
   const card = cardRef.value
   if (!card) return
   pos.x = Math.max(0, (window.innerWidth - card.offsetWidth) / 2)
   pos.y = Math.max(0, (window.innerHeight - card.offsetHeight) / 2)
 }
+
 function clamp(v: number, min: number, max: number): number {
   return Math.min(Math.max(v, min), max)
 }
@@ -250,32 +266,19 @@ function onDragStart(e: PointerEvent): void {
   window.addEventListener('pointermove', onMove)
   window.addEventListener('pointerup', onUp)
 }
+
 function onWindowResize(): void {
   if (!hasDragged.value) centerCard()
 }
-/** Esc 关闭浮层（头像弹窗打开时交给弹窗自身处理，不重复关闭） */
+
+/** Esc 关闭浮层（头像/编辑信息弹窗打开时交给弹窗自身处理，不重复关闭） */
 function onKeydown(e: KeyboardEvent): void {
-  if (e.key === 'Escape' && !avatarDialogVisible.value) emit('close')
+  if (e.key === 'Escape' && !avatarDialogVisible.value && !openSettingVisible.value) emit('close')
 }
-onMounted(() => {
-  // 本地兜底恢复 avatar（若 store 中无 avatar 而本地有记录）
-  const info = userStore.userInfo
-  if (info && !info.avatar) {
-    const saved = localStorage.getItem(avatarKey(info.userId))
-    if (saved) userStore.userInfo = { ...info, avatar: saved }
-  }
-  centerCard()
-  cardReady.value = true
-  window.addEventListener('resize', onWindowResize)
-  window.addEventListener('keydown', onKeydown)
-})
-onBeforeUnmount(() => {
-  window.removeEventListener('resize', onWindowResize)
-  window.removeEventListener('keydown', onKeydown)
-  if (avatarPreview.value) URL.revokeObjectURL(avatarPreview.value)
-})
+
 // ---------------- 页面动作 ----------------
 const loggingOut = ref(false)
+
 /** 退出登录：确认 → 调 store.logout（后端登出 + 清理本地）→ 提示 → 回登录页 */
 async function onLogout(): Promise<void> {
   if (loggingOut.value) return
@@ -298,7 +301,33 @@ async function onLogout(): Promise<void> {
   emit('close') // 复位父组件显隐状态
   await router.replace('/login')
 }
+
+/**
+ * 打开用户设置表单
+ */
+const openSettingForm = (): void => {
+  openSettingVisible.value = true
+}
+
+onMounted(() => {
+  // 本地兜底恢复 avatar（若 store 中无 avatar 而本地有记录）
+  const info = userStore.userInfo
+  if (info && !info.avatar) {
+    const saved = localStorage.getItem(avatarKey(info.userId))
+    if (saved) userStore.userInfo = { ...info, avatar: saved }
+  }
+  centerCard()
+  cardReady.value = true
+  window.addEventListener('resize', onWindowResize)
+  window.addEventListener('keydown', onKeydown)
+})
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', onWindowResize)
+  window.removeEventListener('keydown', onKeydown)
+  if (avatarPreview.value) URL.revokeObjectURL(avatarPreview.value)
+})
 </script>
+
 <style scoped>
 /* 卡片：fixed 悬浮在主页上，无全屏背景、无遮罩、无虚化 */
 .setting-card {
@@ -319,14 +348,17 @@ async function onLogout(): Promise<void> {
   visibility: hidden;
   transition: box-shadow 0.2s ease;
 }
+
 .setting-card.ready {
   opacity: 1;
   visibility: visible;
 }
+
 .setting-card.dragging {
   cursor: grabbing;
   box-shadow: 0 20px 48px rgba(34, 48, 42, 0.32);
 }
+
 .drag-tip {
   display: flex;
   align-items: center;
@@ -335,6 +367,7 @@ async function onLogout(): Promise<void> {
   color: #9aa093;
   margin-bottom: 14px;
 }
+
 .close-btn {
   position: absolute;
   top: 14px;
@@ -351,6 +384,7 @@ async function onLogout(): Promise<void> {
   justify-content: center;
   cursor: pointer;
 }
+
 .close-btn:hover {
   background: #efeadd;
   color: #22302a;
@@ -364,6 +398,7 @@ async function onLogout(): Promise<void> {
   gap: 18px;
   margin-bottom: 26px;
 }
+
 .avatar-img {
   width: 56px;
   height: 56px;
@@ -371,6 +406,7 @@ async function onLogout(): Promise<void> {
   object-fit: cover;
   display: block;
 }
+
 .avatar {
   width: 56px;
   height: 56px;
@@ -392,27 +428,32 @@ async function onLogout(): Promise<void> {
   gap: 6px; /* 姓名与账号的间距 */
   text-align: left; /* 组内文字左对齐，避免居中时参差 */
 }
+
 .head-text b {
   display: block;
   font-size: 18px;
   color: #22302a;
   letter-spacing: 1px;
 }
+
 .head-text span {
   font-size: 12px;
   color: #9aa093;
 }
+
 .actions {
   margin-top: 24px;
   display: flex;
   justify-content: flex-end;
   gap: 12px;
 }
+
 .avatar-preview {
   display: flex;
   justify-content: center;
   margin-bottom: 18px;
 }
+
 .avatar-preview img {
   width: 96px;
   height: 96px;
@@ -420,16 +461,19 @@ async function onLogout(): Promise<void> {
   object-fit: cover;
   border: 2px solid #e3ded1;
 }
+
 .avatar-preview .avatar {
   width: 96px;
   height: 96px;
   font-size: 36px;
 }
+
 .upload-tip {
   margin-top: 8px;
   font-size: 12px;
   color: #9aa093;
 }
+
 .mr4 {
   margin-right: 4px;
 }

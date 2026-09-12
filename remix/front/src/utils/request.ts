@@ -22,11 +22,12 @@ import { encryptFormData, encryptRequestData } from '@/utils/crypto'
 import { logout } from '@/utils/auth'
 
 // 创建 axios 实例
-// baseURL：开发环境走 vite 代理（vite.config.ts 中 /auth → localhost:11000），故留空；
-// 生产环境可改为 '/api' 等由 nginx 反向代理
+// baseURL：统一加 /api 前缀（可用环境变量 VITE_API_BASE 覆盖），接口调用处只写后端原始路径；
+// 开发环境由 vite 代理（vite.config.ts 中 /api → localhost:11000，rewrite 去掉 /api）转发到后端，
+// 生产环境由 nginx 反向代理做同样的 /api 前缀剥离
 // timeout：请求超时时间 10 秒
 const service: AxiosInstance = axios.create({
-  baseURL: '',
+  baseURL: import.meta.env.VITE_API_BASE || '/api',
   timeout: 10000
 })
 

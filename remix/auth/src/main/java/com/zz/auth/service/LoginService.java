@@ -98,7 +98,7 @@ public class LoginService {
         userInfo.setToken(token);
 
         // 放置token至redis 并设置过期时间
-        redisService.set(RedisKeyConstant.TOKEN + token, userInfo, 86400);
+        redisService.set(RedisKeyConstant.TOKEN + token, userInfo, 120*60);
 
         return token;
     }

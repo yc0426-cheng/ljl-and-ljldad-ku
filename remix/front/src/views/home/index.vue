@@ -1,190 +1,136 @@
 <template>
   <!--
     学习系统主页
-    位置说明：src/views/home/index.vue，由 router/index.ts 中 /home/index 路由懒加载（/ 会重定向到 /home/index）
+    位置说明：src/views/home/index.vue，由 router/index.ts 中常驻布局（src/layout/index.vue）的
+             /home/index 子路由懒加载（/ 会重定向到 /home/index）
     调用链路：本页 → api/home.ts（getHeatmap / getDayRecord / getAnswerStats）
-    布局：左侧模块树（图书馆/学习进度/学习题目/用户管理）
-         右侧 = 每日学习记录热力表（颜色深浅=学习进度，悬停显示具体记录）
+    布局：左侧模块树 + 底部用户区在常驻布局 src/layout/index.vue 中全站存在，本页只渲染右侧主区内容：
+         每日学习记录热力表（颜色深浅=学习进度，悬停显示具体记录）
               + 每日答题个数柱图（日/月/年切换）
+         左侧树点击"内置内容"叶子（每日记录/我的书架/题库练习）时通过 ?view= 通知本页切换视图
     登录态：由路由守卫保证进入本页时已登录
-    左下角用户区：点击打开个人设置浮层（UserSettingCard 组件：无遮罩/不虚化/可拖拽/Esc 关闭）；
-                右侧图标为登出入口
   -->
   <div class="home">
-    <!-- ============ 左侧：模块树 ============ -->
-    <aside class="side">
-      <div class="side-brand">
-        <b>学习管理系统</b>
-        <span>LEARNING SYSTEM</span>
-      </div>
-
-      <el-tree
-        ref="treeRef"
-        v-loading="menuLoading"
-        class="menu"
-        :data="menuTree"
-        node-key="id"
-        default-expand-all
-        highlight-current
-        @node-click="onNodeClick"
-      >
-        <template #default="{ data }">
-          <span class="menu-node">
-            <el-icon v-if="data.icon"><component :is="data.icon" /></el-icon>
-            <span>{{ data.label }}</span>
-          </span>
-        </template>
-      </el-tree>
-
-      <!-- 底部用户区：整块可点击打开个人设置浮层；右侧登出按钮用 .stop 不冒泡 -->
-      <div class="user-area" @click="settingVisible = true">
-        <!-- 头像：有 avatar（OSS URL）显示图片，否则首字母兜底；共用 store，浮层改完自动联动更新 -->
-        <img
-          v-if="userStore.userInfo?.avatar"
-          class="ua-avatar"
-          :src="userStore.userInfo.avatar"
-          alt="头像"
-        />
-        <span v-else class="ua-avatar">
-          {{ (userStore.userInfo?.name || userStore.userInfo?.account || '未').slice(0, 1) }}
-        </span>
-        <div class="u-info">
-          <b>{{ username }}</b>
-          <span>已登录 · 点击进入个人设置</span>
+    <!-- ===== 学习进度（主页默认视图） ===== -->
+    <template v-if="activeView === 'progress'">
+      <header class="page-head">
+        <div>
+          <p class="crumb">PROGRESS / DAILY RECORD</p>
+          <h1>学习进度</h1>
         </div>
-        <el-tooltip content="退出登录" placement="top">
-          <el-button text :loading="loggingOut" @click.stop="onLogout">
-            <el-icon>
-              <SwitchButton />
-            </el-icon>
-          </el-button>
-        </el-tooltip>
-      </div>
-    </aside>
+        <p class="head-date">{{ headDate }}</p>
+      </header>
 
-    <!-- ============ 右侧：主区 ============ -->
-    <main class="main">
-      <!-- ===== 学习进度（主页默认视图） ===== -->
-      <template v-if="activeView === 'progress'">
-        <header class="page-head">
-          <div>
-            <p class="crumb">PROGRESS / DAILY RECORD</p>
-            <h1>学习进度</h1>
-          </div>
-          <p class="head-date">{{ headDate }}</p>
-        </header>
-
-        <!-- 统计横条（由热力数据推算，无需单独接口） -->
-        <section class="stat-strip">
-          <div class="stat">
-            <div class="num">{{ anim.duration }}<i>MIN</i></div>
-            <p>今日学习时长</p>
-          </div>
-          <div class="stat">
-            <div class="num">{{ anim.answers }}<i>道</i></div>
-            <p>今日答题个数</p>
-          </div>
-          <div class="stat">
-            <div class="num accent">{{ anim.streak }}<i>天</i></div>
-            <p>连续打卡</p>
-          </div>
-          <div class="stat">
-            <div class="num">{{ anim.weekAvg }}<i>%</i></div>
-            <p>本周平均进度</p>
-          </div>
-        </section>
-
-        <!-- 每日学习记录：颜色深浅 = 学习进度 -->
-        <section v-loading="pageLoading" class="panel">
-          <div class="panel-head">
-            <h2>
-              每日学习记录<small>颜色深浅 = 学习进度 · 悬停查看具体记录 · 点击查看当日明细</small>
-            </h2>
-            <div class="legend">
-              <span>0</span>
-              <i v-for="n in 5" :key="n" :class="`lv${n - 1}`" />
-              <span>100%</span>
-              <i class="lv0 today-mark" /><span>今日</span>
-            </div>
-          </div>
-
-          <!-- 热力表：列=周，行=周一~周日 -->
-          <div class="heat-scroll">
-            <div class="heat">
-              <div class="heat-weekdays">
-                <span v-for="w in ['一', '', '三', '', '五', '', '日']" :key="w">{{ w }}</span>
-              </div>
-              <div class="heat-weeks">
-                <div v-for="(week, wi) in weekCols" :key="wi" class="heat-week">
-                  <div class="heat-month">{{ week.label }}</div>
-                  <span
-                    v-for="cell in week.cells"
-                    :key="cell.date"
-                    class="heat-cell"
-                    :class="[
-                      cell.isFuture ? 'future' : `lv${cell.level}`,
-                      {
-                        today: cell.isToday,
-                        selected: cell.date === selectedDate
-                      }
-                    ]"
-                    @mouseenter="onCellEnter(cell, $event)"
-                    @mouseleave="onCellLeave"
-                    @click="onCellClick(cell)"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- 当日明细（点击热力格展开） -->
-          <div v-if="selected" class="day-detail">
-            <div class="dd-head">
-              <b>{{ selected.date }} 学习明细</b>
-              <span>时长 {{ selected.duration }} min · 答题 {{ selected.answers }} 道</span>
-            </div>
-            <template v-if="selected.loading">
-              <div class="skel" />
-              <div class="skel" />
-              <div class="skel" />
-            </template>
-            <template v-else-if="selected.items.length">
-              <div v-for="(it, i) in selected.items" :key="i" class="dd-item">
-                <span class="dd-time">{{ it.time }}</span>
-                <span class="dd-text">{{ it.content }}</span>
-                <el-tag size="small" effect="plain">{{ it.type }}</el-tag>
-              </div>
-            </template>
-            <p v-else class="dd-empty">这一天没有学习记录</p>
-          </div>
-        </section>
-
-        <!-- 每日答题个数柱图：日 / 月 / 年 -->
-        <section class="panel">
-          <div class="panel-head">
-            <h2>答题统计<small>ANSWER COUNT</small></h2>
-            <!-- 注：element-plus < 2.6 请把 value 换成 label -->
-            <el-radio-group v-model="statUnit" size="small">
-              <el-radio-button value="day">日</el-radio-button>
-              <el-radio-button value="month">月</el-radio-button>
-              <el-radio-button value="year">年</el-radio-button>
-            </el-radio-group>
-          </div>
-          <div
-            ref="chartEl"
-            v-loading="chartLoading"
-            class="chart"
-            element-loading-background="transparent"
-          />
-        </section>
-      </template>
-
-      <!-- ===== 其它模块占位：后续按 views/library 等拆分为独立页面 ===== -->
-      <section v-else class="panel module-empty">
-        <h2>{{ activeLabel }}</h2>
-        <el-empty :description="`「${activeLabel}」模块规划中`" />
+      <!-- 统计横条（由热力数据推算，无需单独接口） -->
+      <section class="stat-strip">
+        <div class="stat">
+          <div class="num">{{ anim.duration }}<i>MIN</i></div>
+          <p>今日学习时长</p>
+        </div>
+        <div class="stat">
+          <div class="num">{{ anim.answers }}<i>道</i></div>
+          <p>今日答题个数</p>
+        </div>
+        <div class="stat">
+          <div class="num accent">{{ anim.streak }}<i>天</i></div>
+          <p>连续打卡</p>
+        </div>
+        <div class="stat">
+          <div class="num">{{ anim.weekAvg }}<i>%</i></div>
+          <p>本周平均进度</p>
+        </div>
       </section>
-    </main>
+
+      <!-- 每日学习记录：颜色深浅 = 学习进度 -->
+      <section v-loading="pageLoading" class="panel">
+        <div class="panel-head">
+          <h2>
+            每日学习记录<small>颜色深浅 = 学习进度 · 悬停查看具体记录 · 点击查看当日明细</small>
+          </h2>
+          <div class="legend">
+            <span>0</span>
+            <i v-for="n in 5" :key="n" :class="`lv${n - 1}`" />
+            <span>100%</span>
+            <i class="lv0 today-mark" /><span>今日</span>
+          </div>
+        </div>
+
+        <!-- 热力表：列=周，行=周一~周日 -->
+        <div class="heat-scroll">
+          <div class="heat">
+            <div class="heat-weekdays">
+              <span v-for="w in ['一', '', '三', '', '五', '', '日']" :key="w">{{ w }}</span>
+            </div>
+            <div class="heat-weeks">
+              <div v-for="(week, wi) in weekCols" :key="wi" class="heat-week">
+                <div class="heat-month">{{ week.label }}</div>
+                <span
+                  v-for="cell in week.cells"
+                  :key="cell.date"
+                  class="heat-cell"
+                  :class="[
+                    cell.isFuture ? 'future' : `lv${cell.level}`,
+                    {
+                      today: cell.isToday,
+                      selected: cell.date === selectedDate
+                    }
+                  ]"
+                  @mouseenter="onCellEnter(cell, $event)"
+                  @mouseleave="onCellLeave"
+                  @click="onCellClick(cell)"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 当日明细（点击热力格展开） -->
+        <div v-if="selected" class="day-detail">
+          <div class="dd-head">
+            <b>{{ selected.date }} 学习明细</b>
+            <span>时长 {{ selected.duration }} min · 答题 {{ selected.answers }} 道</span>
+          </div>
+          <template v-if="selected.loading">
+            <div class="skel" />
+            <div class="skel" />
+            <div class="skel" />
+          </template>
+          <template v-else-if="selected.items.length">
+            <div v-for="(it, i) in selected.items" :key="i" class="dd-item">
+              <span class="dd-time">{{ it.time }}</span>
+              <span class="dd-text">{{ it.content }}</span>
+              <el-tag size="small" effect="plain">{{ it.type }}</el-tag>
+            </div>
+          </template>
+          <p v-else class="dd-empty">这一天没有学习记录</p>
+        </div>
+      </section>
+
+      <!-- 每日答题个数柱图：日 / 月 / 年 -->
+      <section class="panel">
+        <div class="panel-head">
+          <h2>答题统计<small>ANSWER COUNT</small></h2>
+          <!-- 注：element-plus < 2.6 请把 value 换成 label -->
+          <el-radio-group v-model="statUnit" size="small">
+            <el-radio-button value="day">日</el-radio-button>
+            <el-radio-button value="month">月</el-radio-button>
+            <el-radio-button value="year">年</el-radio-button>
+          </el-radio-group>
+        </div>
+        <div
+          ref="chartEl"
+          v-loading="chartLoading"
+          class="chart"
+          element-loading-background="transparent"
+        />
+      </section>
+    </template>
+
+    <!-- ===== 其它模块占位：后续按 views/library 等拆分为独立页面 ===== -->
+    <section v-else class="panel module-empty">
+      <h2>{{ activeLabel }}</h2>
+      <el-empty :description="`「${activeLabel}」模块规划中`" />
+    </section>
 
     <!-- 悬停提示：具体学习记录（teleport 到 body，不受面板 overflow 裁剪） -->
     <teleport to="body">
@@ -210,270 +156,40 @@
         </div>
       </transition>
     </teleport>
-
-    <!-- 个人设置浮层：透传组件（无遮罩/不虚化），v-if 卸载干净，关闭后不留任何 DOM -->
-    <UserSetting v-if="settingVisible" @close="settingVisible = false" />
   </div>
 </template>
 
 <script setup lang="ts">
 // ---------------- import 区 ----------------
-import { computed, markRaw, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
-import type { TreeInstance } from 'element-plus'
-import { ElMessage, ElMessageBox } from 'element-plus' // 登出确认框 + 成功提示
+import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import * as echarts from 'echarts/core'
 import { BarChart } from 'echarts/charts'
 import { GridComponent, TooltipComponent, MarkLineComponent } from 'echarts/components'
 import { CanvasRenderer } from 'echarts/renderers'
 import type { EChartsCoreOption } from 'echarts/core'
-// 图标局部引入，不依赖 main.ts 全局注册
-import {
-  Reading,
-  DataLine,
-  EditPen,
-  UserFilled,
-  Collection,
-  List,
-  Avatar,
-  Setting,
-  SwitchButton
-} from '@element-plus/icons-vue'
-import type { Component } from 'vue'
-import { useUserStore } from '@/store/user'
 import { getHeatmap, getDayRecord, getAnswerStats } from '@/api/home'
-import { listMenuTree } from '@/api/system/menu'
-import { isMenuRouteReady, registerMenuRoutes } from '@/router'
-import type { SysMenu } from '@/types/system/menu'
 import type { IHeatCell, IDayRecord, StatUnit } from '@/types/home'
-// 个人设置浮层组件（含更改头像：el-dialog + el-upload → 后端转存 OSS）
-import UserSetting from '@/views/system/user/setting/UserSetting.vue'
 
 echarts.use([BarChart, GridComponent, TooltipComponent, MarkLineComponent, CanvasRenderer])
 
 // ---------------- 实例化 ----------------
-const router = useRouter()
-const userStore = useUserStore() // 登录用户信息（name 优先，缺失时回退到 account）
-const username = computed(() => userStore.userInfo?.name || userStore.userInfo?.account)
+const route = useRoute()
 
-/** 个人设置浮层显隐（UserSettingCard：透传浮层，无遮罩/不虚化/可拖拽/Esc 关闭） */
-const settingVisible = ref(false)
-
-// ---------------- 左侧模块树（由后端 sys_menu 下发） ----------------
-// 内置内容叶子的路由约定：命中以下路径时仍走"主区内切换内容"（保留原热力表等实现），
-// 其余叶子走路由跳转（能解析到组件则 router.push，否则跳"建设中"占位页）
-const BUILTIN_CONTENT: Record<string, string> = {
-  '/progress-daily': 'progress',
-  '/library-shelf': 'library',
-  '/quiz-list': 'quiz',
-  '/users-list': 'users'
-}
-
-/** 树节点展示结构（与后端 SysMenu 对应） */
-interface MenuNode {
-  id: number
-  label: string
-  icon?: Component
-  menuType: number
-  routePath?: string
-  component?: string
-  children?: MenuNode[]
-}
-
-/** 图标名 → 组件映射（对应 sys_menu.icon；未知图标给兜底 List） */
-const ICON_MAP: Record<string, Component> = {
-  DataLine: markRaw(DataLine),
-  Reading: markRaw(Reading),
-  EditPen: markRaw(EditPen),
-  UserFilled: markRaw(UserFilled),
-  Collection: markRaw(Collection),
-  List: markRaw(List),
-  Avatar: markRaw(Avatar),
-  Setting: markRaw(Setting)
-}
-
-const menuTree = ref<MenuNode[]>([])
-const menuLoading = ref(true)
-const treeRef = ref<TreeInstance>()
+// ---------------- 视图切换（左侧树点击"内置内容"叶子 → 布局带 ?view= 跳转到本页） ----------------
 const activeView = ref('progress')
 const activeLabel = ref('学习进度')
 
-/** 后端菜单 → 树节点（icon 名映射成组件） */
-function toMenuNodes(list: SysMenu[]): MenuNode[] {
-  return list.map((m) => ({
-    id: m.menuId!,
-    label: m.menuName,
-    icon: m.icon ? ICON_MAP[m.icon] : undefined,
-    menuType: m.menuType,
-    routePath: m.routePath,
-    component: m.component,
-    children: m.children?.length ? toMenuNodes(m.children) : undefined
-  }))
-}
-
-/** 兜底菜单：后端拉不到（表未建/服务未起）时仍能展示旧内置模块，页面不白屏 */
-function buildFallbackMenus(): SysMenu[] {
-  return [
-    {
-      menuId: 1,
-      menuName: '学习进度',
-      menuType: 1,
-      icon: 'DataLine',
-      orderNo: 1,
-      visible: true,
-      children: [
-        {
-          menuId: 11,
-          menuName: '每日记录',
-          menuType: 2,
-          routePath: '/progress-daily',
-          icon: 'DataLine',
-          orderNo: 1,
-          visible: true
-        }
-      ]
-    },
-    {
-      menuId: 2,
-      menuName: '图书馆',
-      menuType: 1,
-      icon: 'Reading',
-      orderNo: 2,
-      visible: true,
-      children: [
-        {
-          menuId: 21,
-          menuName: '我的书架',
-          menuType: 2,
-          routePath: '/library-shelf',
-          icon: 'Collection',
-          orderNo: 1,
-          visible: true
-        }
-      ]
-    },
-    {
-      menuId: 3,
-      menuName: '学习题目',
-      menuType: 1,
-      icon: 'EditPen',
-      orderNo: 3,
-      visible: true,
-      children: [
-        {
-          menuId: 31,
-          menuName: '题库练习',
-          menuType: 2,
-          routePath: '/quiz-list',
-          icon: 'List',
-          orderNo: 1,
-          visible: true
-        }
-      ]
-    },
-    {
-      menuId: 4,
-      menuName: '用户管理',
-      menuType: 1,
-      icon: 'UserFilled',
-      orderNo: 4,
-      visible: true,
-      children: [
-        {
-          menuId: 41,
-          menuName: '用户列表',
-          menuType: 2,
-          routePath: '/users-list',
-          icon: 'Avatar',
-          orderNo: 1,
-          visible: true
-        }
-      ]
-    },
-    {
-      menuId: 5,
-      menuName: '系统管理',
-      menuType: 1,
-      icon: 'Setting',
-      orderNo: 5,
-      visible: true,
-      children: [
-        {
-          menuId: 51,
-          menuName: '菜单管理',
-          menuType: 2,
-          routePath: '/system/menu',
-          component: 'system/menu/index',
-          icon: 'Setting',
-          orderNo: 1,
-          visible: true
-        }
-      ]
-    }
-  ]
-}
-
-/**
- * 加载菜单：拉后端树 → 渲染左侧 + 动态注册路由；失败用兜底菜单
- */
-async function loadMenus(): Promise<void> {
-  menuLoading.value = true
-  try {
-    const list = await listMenuTree()
-    menuTree.value = toMenuNodes(list.filter((m) => m.visible !== false))
-    registerMenuRoutes(list) // 解析到组件的叶子注册成路由
-  } catch (e) {
-    console.warn('菜单加载失败，使用内置兜底菜单', e)
-    const fallback = buildFallbackMenus()
-    menuTree.value = toMenuNodes(fallback)
-    registerMenuRoutes(fallback)
-  } finally {
-    menuLoading.value = false
-    // 默认选中"每日记录"叶子（保留旧行为：进入主页默认看学习进度热力表）
-    const def = findLeafByRoute('/progress-daily')
-    if (def) {
-      treeRef.value?.setCurrentKey(def.id)
-    }
-  }
-}
-
-/** 在菜单树中查找指定路由的叶子节点 */
-function findLeafByRoute(routePath: string): MenuNode | undefined {
-  const walk = (nodes: MenuNode[]): MenuNode | undefined => {
-    for (const n of nodes) {
-      if (n.routePath === routePath) return n
-      if (n.children?.length) {
-        const hit = walk(n.children)
-        if (hit) return hit
-      }
-    }
-    return undefined
-  }
-  return walk(menuTree.value)
-}
-
-/** 点击菜单：目录仅展开；内置内容切 activeView；其余路由跳转/占位 */
-function onNodeClick(data: MenuNode): void {
-  if (data.menuType === 1) {
-    return
-  }
-  const path = data.routePath ?? ''
-  const view = BUILTIN_CONTENT[path]
+/** 从路由 query 恢复视图（无 query 时保持默认"学习进度"） */
+function applyViewQuery(): void {
+  const view = typeof route.query.view === 'string' ? route.query.view : ''
   if (view) {
     activeView.value = view
-    activeLabel.value = data.label
-    return
-  }
-  if (!path) {
-    return
-  }
-  if (isMenuRouteReady(path)) {
-    void router.push(path)
-  } else {
-    // 组件未实现 → 跳"建设中"占位页，避免落到 404/被兜底重定向
-    void router.push({ path: '/system/coming-soon', query: { title: data.label, route: path } })
+    activeLabel.value = typeof route.query.label === 'string' ? route.query.label : view
   }
 }
+
+watch(() => route.query, applyViewQuery)
 
 // ---------------- 每日学习记录（热力表） ----------------
 const pageLoading = ref(true)
@@ -662,24 +378,9 @@ const onResize = (): void => chart?.resize()
 
 // ---------------- 初始化 ----------------
 onMounted(async () => {
-  // 双保险：路由守卫之外再确认一次登录态。
-  // 若因任何原因（缓存残留/守卫被绕过）未登录仍渲染到本页，立即清登录态踢回登录页
-  if (!userStore.isLoggedIn) {
-    userStore.clearToken()
-    await router.replace('/login')
-    return
-  }
+  // 路由可能带 ?view=（左侧树点击内置内容叶子跳转而来），先恢复视图
+  applyViewQuery()
 
-  // 头像本地兜底：用户信息接口暂未返回 avatar 字段时，按 userId 从 localStorage 恢复
-  //（与 UserSettingCard 内逻辑一致；后端接口返回 avatar 后此逻辑自动失效，无需删代码）
-  const info = userStore.userInfo
-  if (info && !info.avatar) {
-    const saved = localStorage.getItem(`avatar:${info.userId}`)
-    if (saved) userStore.userInfo = { ...info, avatar: saved }
-  }
-
-  // 左侧菜单：先加载后端菜单（渲染 + 动态注册路由），失败自动用兜底菜单
-  await loadMenus()
   cells.value = await getHeatmap(18)
   pageLoading.value = false
   tween('duration', todayCell.value?.duration ?? 0)
@@ -696,167 +397,11 @@ onBeforeUnmount(() => {
   chart?.dispose()
   chart = null
 })
-
-// ---------------- 退出登录 ----------------
-// 流程：确认弹窗 → 调 store.logout（调后端登出 + 清理本地 token/userInfo）→ 提示 → 回登录页。
-// 用 replace 跳转：登出后浏览器"后退"不应再回到主页。
-const loggingOut = ref(false)
-
-async function onLogout(): Promise<void> {
-  // 防重复点击：登出请求进行中不再弹框
-  if (loggingOut.value) {
-    return
-  }
-
-  // 确认框：用户点"取消"（Promise reject）直接结束，什么都不做
-  try {
-    await ElMessageBox.confirm('退出后需要重新登录才能继续使用', '退出登录', {
-      confirmButtonText: '退出登录',
-      cancelButtonText: '取消',
-      type: 'warning'
-    })
-  } catch {
-    return
-  }
-
-  loggingOut.value = true
-  try {
-    // store.logout 内部已 try/catch：后端登出失败也会继续本地清理，不会走到 reject
-    await userStore.logout()
-    ElMessage.success('已退出登录')
-  } finally {
-    loggingOut.value = false
-  }
-  await router.replace('/login')
-}
 </script>
 
 <style scoped>
 .home {
-  display: flex;
-  height: 100vh;
-  background: #f5f2ea;
-}
-
-/* ============ 左侧 ============ */
-.side {
-  width: 232px;
-  flex: none;
-  background: #f0ede3;
-  border-right: 1px solid #e3ded1;
-  display: flex;
-  flex-direction: column;
-}
-
-.side-brand {
-  padding: 20px 20px 16px;
-  border-bottom: 1px solid #e3ded1;
-}
-
-.side-brand b {
-  display: block;
-  font-size: 16px;
-  letter-spacing: 2px;
-  color: #22302a;
-}
-
-.side-brand span {
-  font-size: 9px;
-  letter-spacing: 3px;
-  color: #9aa093;
-}
-
-.menu {
-  flex: 1;
-  overflow-y: auto;
-  padding: 12px;
-  background: transparent;
-}
-
-.menu :deep(.el-tree) {
-  background: transparent;
-  --el-tree-node-hover-bg-color: transparent;
-}
-
-.menu :deep(.el-tree-node__content) {
-  height: 38px;
-  border-radius: 9px;
-  margin-bottom: 2px;
-}
-
-.menu :deep(.el-tree-node.is-current > .el-tree-node__content) {
-  background: #2d5a4a;
-  color: #fff;
-}
-
-.menu-node {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  font-size: 14px;
-}
-
-.menu-node.root {
-  font-weight: 600;
-}
-
-/* ============ 底部用户区（点击打开个人设置浮层） ============ */
-.user-area {
-  border-top: 1px solid #e3ded1;
-  padding: 14px 20px;
-  display: flex;
-  align-items: center;
-  gap: 11px;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-
-.user-area:hover {
-  background: rgba(45, 90, 74, 0.06);
-}
-
-.user-area:focus-visible {
-  outline: 2px solid #2d5a4a;
-  outline-offset: -2px;
-}
-
-/* 用户区头像：有 avatar 显示图片，否则首字母 */
-.ua-avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  object-fit: cover;
-  background: #2d5a4a;
-  color: #f0ede2;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 18px;
-  font-weight: 700;
-  flex: none;
-  overflow: hidden;
-}
-
-.u-info {
-  flex: 1;
-  line-height: 1.3;
-}
-
-.u-info b {
-  display: block;
-  font-size: 14px;
-}
-
-.u-info span {
-  font-size: 11px;
-  color: #9aa093;
-}
-
-/* ============ 右侧 ============ */
-.main {
-  flex: 1;
-  overflow-y: auto;
-  padding: 32px 40px 48px;
+  /* 渲染在常驻布局 src/layout/index.vue 的 .main 内，本页不再管页面骨架 */
 }
 
 .page-head {
@@ -1250,69 +795,7 @@ async function onLogout(): Promise<void> {
   opacity: 0;
 }
 
-/* ============ 滚动条美化（贴合纸感绿主题） ============ */
-/* ---- 主区：右侧内容纵向滚动条 ---- */
-.main {
-  /* Firefox：细滚动条 + 静态配色（滑块/轨道） */
-  scrollbar-width: thin;
-  scrollbar-color: #c9d3c6 transparent;
-}
-
-/* Chrome / Edge / Safari */
-.main::-webkit-scrollbar {
-  width: 8px;
-}
-
-.main::-webkit-scrollbar-track {
-  background: transparent; /* 轨道透明，融入 #f5f2ea 底色 */
-}
-
-.main::-webkit-scrollbar-thumb {
-  background-color: #c9d3c6; /* 浅豆绿：对应热力图 lv1/lv2 色阶 */
-  border-radius: 8px; /* 胶囊形 */
-  border: 2px solid transparent; /* 透明描边收窄视觉宽度，留出呼吸感 */
-  background-clip: padding-box;
-}
-
-/* 鼠标在主区内时滑块加深一档（热力图 lv2） */
-.main:hover::-webkit-scrollbar-thumb {
-  background-color: #a7c7b0;
-}
-
-/* 悬停滑块本体：主题深绿 */
-.main::-webkit-scrollbar-thumb:hover {
-  background-color: #2d5a4a;
-}
-
-/* 按住拖动：点缀红，与柱图 emphasis 色呼应 */
-.main::-webkit-scrollbar-thumb:active {
-  background-color: #b5482f;
-}
-
-.main::-webkit-scrollbar-corner {
-  background: transparent;
-}
-
-/* ---- 顺手统一（可选）：左侧菜单纵向滚动条 ---- */
-.menu {
-  scrollbar-width: thin;
-  scrollbar-color: #d6e4d8 transparent;
-}
-
-.menu::-webkit-scrollbar {
-  width: 6px;
-}
-
-.menu::-webkit-scrollbar-thumb {
-  background-color: #d6e4d8;
-  border-radius: 6px;
-}
-
-.menu::-webkit-scrollbar-thumb:hover {
-  background-color: #6ba186;
-}
-
-/* ---- 顺手统一（可选）：热力表横向滚动条（周数多时出现） ---- */
+/* ---- 热力表横向滚动条（周数多时出现） ---- */
 .heat-scroll {
   scrollbar-width: thin;
   scrollbar-color: #d6e4d8 transparent;

@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zz.system.user.mapper.SysUserMapper">
+
+    <!-- 根据用户ID更新账号 -->
+    <update id="edit">
+        UPDATE sys_user
+        <set>
+            <if test="dto.account != null and dto.account != ''">
+                account = #{dto.account},
+            </if>
+            <if test="dto.name != null and dto.name != ''">
+                name = #{dto.name},
+            </if>
+            <if test="dto.phone != null and dto.phone != ''">
+                phone = #{dto.phone},
+            </if>
+            <if test="dto.idNumber != null and dto.idNumber != ''">
+                id_number = #{dto.idNumber},
+            </if>
+            <if test="dto.email != null and dto.email != ''">
+                email = #{dto.email},
+            </if>
+            <if test="dto.status != null">
+                status = #{dto.status},
+            </if>
+        </set>
+        WHERE user_id = #{dto.userId}
+    </update>
+
+
+</mapper>

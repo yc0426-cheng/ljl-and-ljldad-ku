@@ -34,6 +34,14 @@ EXCLUDED_DIRECTORIES = frozenset(
 )
 FRONTEND_SCRIPTS = ("lint", "type-check", "format", "build")
 
+# 执行结果汇总：(步骤名称, 工作目录, 结果描述)，全部步骤结束后统一输出
+CHECK_RESULTS: list[tuple[str, str, str]] = []
+
+
+def record_result(step: str, working_directory: Path, outcome: str) -> None:
+    """记录一个检查步骤的结果（含未真正起子进程的失败分支）。"""
+    CHECK_RESULTS.append((step, str(working_directory), outcome))
+
 
 def iter_project_files(root: Path) -> Iterator[Path]:
     """遍历项目文件，并跳过依赖、缓存和构建目录。"""
@@ -69,7 +77,7 @@ def find_frontend_projects(target: Path) -> list[Path]:
 
 
 def run_command(command: Sequence[str], working_directory: Path) -> int:
-    """运行命令并返回退出状态。"""
+    """运行命令并返回退出状态；结果同时记录到 CHECK_RESULTS 供最后汇总输出。"""
     display_command = subprocess.list2cmdline(list(command))
     print(f"\n[RUN] {display_command}")
     print(f"[DIR] {working_directory}")
@@ -82,14 +90,19 @@ def run_command(command: Sequence[str], working_directory: Path) -> int:
         )
     except OSError as error:
         print(f"[ERROR] 无法启动命令：{error}", file=sys.stderr)
+        record_result(display_command, working_directory, "无法启动")
         return 2
 
     if result.returncode == 0:
         print("[PASS] 检查通过")
+        record_result(display_command, working_directory, "通过")
     else:
         print(
             f"[FAIL] 检查失败，退出状态为 {result.returncode}",
             file=sys.stderr,
+        )
+        record_result(
+            display_command, working_directory, f"失败（退出状态 {result.returncode}）"
         )
     return result.returncode
 
@@ -101,6 +114,7 @@ def check_python(target: Path, required: bool = True) -> int:
         message = f"目标中没有找到 Python 文件：{target}"
         if required:
             print(f"[ERROR] {message}", file=sys.stderr)
+            record_result("pylint（收集 Python 文件）", target, "未找到 Python 文件")
             return 2
         print(f"[SKIP] {message}")
         return 0
@@ -111,6 +125,7 @@ def check_python(target: Path, required: bool = True) -> int:
             f"{sys.executable} -m pip install pylint",
             file=sys.stderr,
         )
+        record_result("pylint", target, "未安装 pylint")
         return 2
 
     command = [
@@ -138,6 +153,47 @@ def read_package_scripts(package_json: Path) -> dict[str, object] | None:
     return scripts
 
 
+def find_maven_projects(target: Path) -> list[Path]:
+    """查找包含 pom.xml 的后端 Maven 项目目录。"""
+    if target.is_file():
+        return [target.parent] if target.name == "pom.xml" else []
+
+    direct_pom = target / "pom.xml"
+    if direct_pom.is_file():
+        return [target]
+
+    return [path.parent for path in iter_project_files(target) if path.name == "pom.xml"]
+
+
+def check_backend(target: Path, required: bool = True) -> int:
+    """依次执行后端 Maven 项目的 mvn clean 和 mvn compile。"""
+    projects = find_maven_projects(target)
+    if not projects:
+        message = f"目标中没有找到后端项目（pom.xml）：{target}"
+        if required:
+            print(f"[ERROR] {message}", file=sys.stderr)
+            record_result("maven（查找 pom.xml）", target, "未找到 pom.xml")
+            return 2
+        print(f"[SKIP] {message}")
+        return 0
+
+    mvn_executable = shutil.which("mvn")
+    if mvn_executable is None:
+        print("[ERROR] 未找到 mvn，请先安装 Maven 并加入 PATH", file=sys.stderr)
+        record_result("maven", target, "未安装 Maven")
+        return 2
+
+    first_failure = 0
+    for project in projects:
+        for step in ("clean", "compile"):
+            # Windows 下 mvn 通常是 mvn.cmd，subprocess 直接写 "mvn" 会 WinError 2，
+            # 必须传 which 解析出的完整路径
+            return_code = run_command([mvn_executable, step], project)
+            first_failure = first_failure or return_code
+
+    return first_failure
+
+
 def check_frontend(target: Path, required: bool = True) -> int:
     """依次执行前端项目约定的 pnpm 检查。"""
     projects = find_frontend_projects(target)
@@ -145,6 +201,7 @@ def check_frontend(target: Path, required: bool = True) -> int:
         message = f"目标中没有找到前端项目（package.json）：{target}"
         if required:
             print(f"[ERROR] {message}", file=sys.stderr)
+            record_result("pnpm（查找 package.json）", target, "未找到前端项目")
             return 2
         print(f"[SKIP] {message}")
         return 0
@@ -152,6 +209,7 @@ def check_frontend(target: Path, required: bool = True) -> int:
     pnpm_executable = shutil.which("pnpm")
     if pnpm_executable is None:
         print("[ERROR] 未找到 pnpm，请先安装并加入 PATH", file=sys.stderr)
+        record_result("pnpm", target, "未安装 pnpm")
         return 2
 
     first_failure = 0
@@ -159,6 +217,7 @@ def check_frontend(target: Path, required: bool = True) -> int:
         package_json = project / "package.json"
         scripts = read_package_scripts(package_json)
         if scripts is None:
+            record_result("pnpm（读取 package.json）", project, "读取 package.json 失败")
             first_failure = first_failure or 2
             continue
 
@@ -167,6 +226,11 @@ def check_frontend(target: Path, required: bool = True) -> int:
             print(
                 f"[ERROR] {package_json} 缺少脚本：{', '.join(missing_scripts)}",
                 file=sys.stderr,
+            )
+            record_result(
+                "pnpm（检查 scripts）",
+                project,
+                f"缺少脚本：{', '.join(missing_scripts)}",
             )
             first_failure = first_failure or 2
             continue
@@ -181,15 +245,40 @@ def check_frontend(target: Path, required: bool = True) -> int:
     return first_failure
 
 
+def print_summary() -> None:
+    """全部检查结束后，统一输出每个步骤的执行结果。"""
+    print("\n" + "=" * 60)
+    print("检查结果汇总")
+    print("=" * 60)
+
+    if not CHECK_RESULTS:
+        print("（没有执行任何检查步骤）")
+        return
+
+    for index, (step, directory, outcome) in enumerate(CHECK_RESULTS, start=1):
+        mark = "✓" if outcome == "通过" else "✗"
+        print(f"{index:>2}. [{mark}] {step}")
+        print(f"      目录：{directory}")
+        print(f"      结果：{outcome}")
+
+    failed = sum(1 for _, _, outcome in CHECK_RESULTS if outcome != "通过")
+    print("-" * 60)
+    total = len(CHECK_RESULTS)
+    if failed:
+        print(f"共 {total} 步，{total - failed} 步通过，{failed} 步失败")
+    else:
+        print(f"共 {total} 步，全部通过")
+
+
 def build_parser() -> argparse.ArgumentParser:
     """创建命令行参数解析器。"""
     parser = argparse.ArgumentParser(
-        description="按语言执行 Python 或前端代码检查。",
+        description="按语言执行后端、Python 或前端代码检查。",
     )
     parser.add_argument(
         "language",
-        choices=("python", "frontend", "all"),
-        help="python 使用 pylint；frontend 使用 pnpm；all 执行两类检查。",
+        choices=("python", "frontend", "backend", "all"),
+        help="python 使用 pylint；frontend 使用 pnpm；backend 使用 maven；all 执行三类检查。",
     )
     parser.add_argument(
         "target",
@@ -209,13 +298,19 @@ def main() -> int:
         return 2
 
     if arguments.language == "python":
-        return check_python(target)
-    if arguments.language == "frontend":
-        return check_frontend(target)
+        status = check_python(target)
+    elif arguments.language == "frontend":
+        status = check_frontend(target)
+    elif arguments.language == "backend":
+        status = check_backend(target)
+    else:
+        python_status = check_python(target, required=False)
+        frontend_status = check_frontend(target, required=False)
+        backend_status = check_backend(target, required=False)
+        status = python_status or frontend_status or backend_status
 
-    python_status = check_python(target, required=False)
-    frontend_status = check_frontend(target, required=False)
-    return python_status or frontend_status
+    print_summary()
+    return status
 
 
 if __name__ == "__main__":
