@@ -1,7 +1,7 @@
 package com.zz.system.user.controller;
 
+import com.zz.api.system.user.dto.SysUserFeignDTO;
 import com.zz.common.core.pojo.LoginUserInfo;
-import com.zz.system.user.entity.SysUser;
 import com.zz.system.user.pojo.dto.SysUserDTO;
 import com.zz.system.user.pojo.param.SysUserParam;
 import com.zz.system.user.pojo.vo.SysUserVO;
@@ -32,7 +32,7 @@ public class SysUserController {
      * @return 用户信息
      */
     @GetMapping(path = "/sys/user/get/account")
-    public SysUser getUserInfoByAccount(String account) {
+    public SysUserFeignDTO getUserInfoByAccount(String account) {
         return sysUserService.getUserInfoByAccount(account);
     }
 

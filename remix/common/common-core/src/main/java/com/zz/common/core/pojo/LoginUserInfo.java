@@ -27,6 +27,26 @@ public class LoginUserInfo {
     private String name;
 
     /**
+     * 手机号码
+     */
+    private String phone;
+
+    /**
+     * 邮箱
+     */
+    private String email;
+
+    /**
+     * 昵称（存于 sys_user_misc 杂项表）
+     */
+    private String nickname;
+
+    /**
+     * 个性签名（存于 sys_user_misc 杂项表）
+     */
+    private String signature;
+
+    /**
      * 头像（OSS 地址，存于 sys_user_misc 杂项表，登录时拼进本对象）
      */
     private String avatar;

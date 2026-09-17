@@ -2,8 +2,10 @@ package com.zz.system.user.entity;
 
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.zz.common.core.entity.BaseEntity;
 import com.zz.system.user.enums.SysUserStatusEnum;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 import java.util.Date;
 
@@ -14,9 +16,10 @@ import java.util.Date;
 * @author yangcheng
 * @since 2026-08-20 16:55:09
 */
+@EqualsAndHashCode(callSuper = true)
 @Data
 @TableName("sys_user")
-public class SysUser {
+public class SysUser extends BaseEntity {
 
     /**
     * 用户ID

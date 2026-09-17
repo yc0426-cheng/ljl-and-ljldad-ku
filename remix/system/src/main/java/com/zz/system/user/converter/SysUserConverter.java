@@ -1,9 +1,11 @@
 package com.zz.system.user.converter;
 
+import com.zz.api.system.user.dto.SysUserFeignDTO;
 import com.zz.system.user.entity.SysUser;
 import com.zz.system.user.pojo.dto.SysUserDTO;
 import com.zz.system.user.pojo.vo.SysUserVO;
 import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
 import org.mapstruct.MappingConstants;
 
 /**
@@ -23,5 +25,18 @@ public interface SysUserConverter {
     /**
      * dto转实体类
      */
+    @Mapping(target = "updateUser", ignore = true)
+    @Mapping(target = "updateTime", ignore = true)
+    @Mapping(target = "password", ignore = true)
+    @Mapping(target = "passErrorCount", ignore = true)
+    @Mapping(target = "lastLoginTime", ignore = true)
+    @Mapping(target = "delFlag", ignore = true)
+    @Mapping(target = "createUser", ignore = true)
+    @Mapping(target = "createTime", ignore = true)
     SysUser dto2Entity(SysUserDTO dto);
+
+    /**
+     * 实体类转远程调用类
+     */
+    SysUserFeignDTO  entityToFeignDTO(SysUser sysUser);
 }

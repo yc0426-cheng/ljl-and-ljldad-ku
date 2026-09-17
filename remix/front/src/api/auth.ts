@@ -11,6 +11,14 @@ export interface AuthUserInfo {
   account?: string
   /** 名称 */
   name?: string
+  /** 手机号码 */
+  phone?: string
+  /** 邮箱 */
+  email?: string
+  /** 昵称 */
+  nickname?: string
+  /** 个性签名 */
+  signature?: string
   /** token */
   token?: string
   /** 头像（OSS 地址，存于 sys_user_misc 杂项表，后端拼进 LoginUserInfo 返回） */

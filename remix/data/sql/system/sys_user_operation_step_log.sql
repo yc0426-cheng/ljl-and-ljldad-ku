@@ -29,6 +29,11 @@ CREATE TABLE IF NOT EXISTS sys_user_operation_step_log (
     target_db      varchar(50)  DEFAULT NULL COMMENT '(可选)本步骤修改的目标数据库名，如 learn；只读步骤为 NULL',
     target_table   varchar(100) DEFAULT NULL COMMENT '(可选)本步骤修改的目标表名，如 sys_user；只读步骤为 NULL',
 
+    create_user BIGINT NULL COMMENT '创建用户ID',
+    create_time DATETIME COMMENT '创建时间',
+    update_user BIGINT NULL COMMENT '更新用户ID',
+    update_time DATETIME COMMENT '更新时间',
+
     index(log_id),             # 按请求查该请求下的全部步骤
     index(log_id, step_no),    # 按请求 + 先序序号排序查询
     index(parent_step_id)      # 按父步骤查其子调用
