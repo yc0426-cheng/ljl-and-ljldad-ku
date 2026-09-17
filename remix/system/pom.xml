@@ -48,6 +48,12 @@
             <artifactId>spring-boot-starter-data-redis</artifactId>
         </dependency>
 
+        <!-- oss sdk v2 -->
+        <dependency>
+            <groupId>com.aliyun</groupId>
+            <artifactId>alibabacloud-oss-v2</artifactId>
+        </dependency>
+
         <!-- open feign -->
         <dependency>
             <groupId>org.springframework.cloud</groupId>
@@ -80,6 +86,19 @@
         <dependency>
             <groupId>com.zz.learn</groupId>
             <artifactId>common-redis</artifactId>
+            <version>1.0.0</version>
+            <scope>compile</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>com.zz.learn</groupId>
+            <artifactId>api-file</artifactId>
+            <version>1.0.0</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.zz.learn</groupId>
+            <artifactId>api-system</artifactId>
             <version>1.0.0</version>
             <scope>compile</scope>
         </dependency>

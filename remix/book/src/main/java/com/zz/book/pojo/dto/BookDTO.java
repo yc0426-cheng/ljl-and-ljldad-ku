@@ -1,0 +1,50 @@
+package com.zz.book.pojo.dto;
+
+import lombok.Data;
+
+/**
+ * <p><b>书籍服务-增删改dto类</b></p>
+ *
+ * @author yangcheng
+ * @since 2026/9/17 15:12
+ */
+@Data
+public class BookDTO {
+
+    /**
+     * 书名
+     */
+    private String title;
+    /**
+     * 封面图OSS地址
+     */
+    private String coverUrl;
+    /**
+     * 书籍原文件OSS地址
+     */
+    private String fileUrl;
+    /**
+     * 文件格式
+     */
+    private String fileFormat;
+    /**
+     * 文件大小(字节)
+     */
+    private Long fileSize;
+    /**
+     * 文件SHA-256
+     */
+    private String fileHash;
+    /**
+     * 总页数
+     */
+    private Integer totalPages;
+    /**
+     * 书籍语言
+     */
+    private String language;
+    /**
+     * 上传者ID
+     */
+    private Long uploaderId;
+}

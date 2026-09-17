@@ -80,7 +80,6 @@ import type { Component } from 'vue'
 import { CircleCheckFilled, CircleCloseFilled, Lock, Moon } from '@element-plus/icons-vue'
 import { SysUser, SysUserDTO, SysUserParam, SysUserVO } from '@/types/system/user'
 import { SysUserApi } from '@/api/system/user/user'
-import UserForm from '@/views/system/user/UserForm.vue'
 
 // ---------------- 状态列展示映射（纯展示，不参与数据流） ----------------
 // 对应后端 SysUserStatusEnum：ENABLE(1,启用) / FROZEN(0,冻结) / DORMANT(-1,休眠)；

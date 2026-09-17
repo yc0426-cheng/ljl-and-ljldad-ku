@@ -26,6 +26,7 @@
         <module>common</module>
         <module>api</module>
         <module>file</module>
+        <module>book</module>
     </modules>
 
     <properties>
@@ -35,6 +36,7 @@
         <lombok.version>1.18.36</lombok.version>
         <mapstruct.version>1.6.3</mapstruct.version>
         <open-feign.version>4.1.5</open-feign.version>
+        <fesod.version>2.0.2-incubating</fesod.version>
         <spring-boot.version>3.2.12</spring-boot.version>
         <mybatis-plus.version>3.5.16</mybatis-plus.version>
         <spring-cloud-version>2023.0.4</spring-cloud-version>
@@ -124,13 +126,17 @@
                 <version>${mapstruct.version}</version>
             </dependency>
 
-
             <dependency>
                 <groupId>com.aliyun</groupId>
                 <artifactId>alibabacloud-oss-v2</artifactId>
                 <version>${oss.version}</version>
             </dependency>
 
+            <dependency>
+                <groupId>org.apache.fesod</groupId>
+                <artifactId>fesod-sheet</artifactId>
+                <version>${fesod.version}</version>
+            </dependency>
 
         </dependencies>
     </dependencyManagement>

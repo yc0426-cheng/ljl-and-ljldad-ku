@@ -1,0 +1,27 @@
+server:
+  port: 14000
+
+spring:
+  application:
+    name: file-server
+  cloud:
+    nacos:
+      server-addr: ${NACOS_SERVER_ADDR:127.0.0.1:8848}
+      username: ${NACOS_USERNAME:nacos}
+      password: ${NACOS_PASSWORD:nacos}
+      config:
+        # Nacos 命名空间 learn 的真实 ID(Nacos 控制台自动生成,不是显示名)
+        namespace: d7982b6e-cff5-4b20-b277-fb4c04dc8515
+        group: DEFAULT_GROUP
+        file-extension: yaml
+        refresh-enabled: true # 开启配置自动刷新
+      discovery:
+        # discovery 也必须显式指明同一命名空间,否则服务会注册到 public
+        namespace: d7982b6e-cff5-4b20-b277-fb4c04dc8515
+        group: DEFAULT_GROUP
+  config:
+    import:
+      # 加载顺序:先公共(优先级低,提供默认值),后私有(可覆盖公共)
+      # 注意:spring.config.import 模式下 namespace 必须显式传 URL 参数,不会从上面 spring.cloud.nacos.config.namespace 继承
+      # optional: 前缀——Nacos 拉不到时不阻断启动(便于本地调试)
+      - nacos:common-datasource?namespace=d7982b6e-cff5-4b20-b277-fb4c04dc8515&group=DEFAULT_GROUP

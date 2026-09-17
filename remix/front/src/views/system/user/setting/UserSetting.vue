@@ -94,6 +94,7 @@
           </el-icon>
           选择图片
         </el-button>
+        <el-button type="primary" @click="handleHistoryAvatarsForm"> 查看历史头像</el-button>
       </el-upload>
       <div class="upload-tip">支持 JPG / PNG / GIF / WebP，大小不超过 2MB</div>
       <template #footer>
@@ -110,7 +111,11 @@
     </el-dialog>
   </Teleport>
 
+  <!-- 用户设置表单 -->
   <UserSettingForm v-model="openSettingVisible" />
+
+  <!-- 用户历史头像表单 -->
+  <UserHistoryAvatarForm v-model="openHistoryForm" />
 </template>
 
 <script setup lang="ts">
@@ -180,6 +185,7 @@ async function onUploadAvatar(): Promise<void> {
   try {
     const formData = new FormData()
     formData.append('file', selectedFile.value)
+    formData.append('userId', String(userStore.userInfo!.userId))
     const { url } = await uploadApi.uploadingAvatar(formData)
     userStore.userInfo = { ...userStore.userInfo!, avatar: url }
     // 本地兜底：接口暂未返回 avatar 字段时，刷新后仍能恢复（按 userId 区分账号）
@@ -307,6 +313,16 @@ async function onLogout(): Promise<void> {
  */
 const openSettingForm = (): void => {
   openSettingVisible.value = true
+}
+
+// 打开历史头像表单
+const openHistoryForm = ref(false)
+
+/**
+ * 打开用户历史头像页面
+ */
+const handleHistoryAvatarsForm = () => {
+  openHistoryForm.value = false
 }
 
 onMounted(() => {

@@ -1,6 +1,7 @@
 package com.zz.system.user.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.zz.api.system.user.dto.SysUserFeignDTO;
 import com.zz.common.core.pojo.LoginUserInfo;
 import com.zz.system.user.entity.SysUser;
 import com.zz.system.user.pojo.dto.SysUserDTO;
@@ -21,7 +22,7 @@ public interface SysUserService extends IService<SysUser> {
      * @param account 账号
      * @return 用户信息
      */
-    SysUser getUserInfoByAccount(String account);
+    SysUserFeignDTO getUserInfoByAccount(String account);
 
     /**
      * 登录密码错误

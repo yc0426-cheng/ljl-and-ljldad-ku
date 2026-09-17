@@ -16,5 +16,10 @@ CREATE TABLE IF NOT EXISTS sys_user_operation_log (
     error_message varchar(200) DEFAULT null COMMENT '错误信息',
     status int default 0 COMMENT '操作状态（0 = 失败 ， 1 = 成功）',
 
+    create_user BIGINT NULL COMMENT '创建用户ID',
+    create_time DATETIME COMMENT '创建时间',
+    update_user BIGINT NULL COMMENT '更新用户ID',
+    update_time DATETIME COMMENT '更新时间',
+
     index(user_id) # user_id索引
 ) comment '用户操作记录表'

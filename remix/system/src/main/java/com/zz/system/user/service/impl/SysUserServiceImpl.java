@@ -2,9 +2,9 @@ package com.zz.system.user.service.impl;
 
 import cn.hutool.core.date.DateTime;
 import cn.hutool.core.util.StrUtil;
-import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.zz.api.system.user.dto.SysUserFeignDTO;
 import com.zz.common.core.annotation.TraceStep;
 import com.zz.common.core.exception.BizException;
 import com.zz.common.core.pojo.LoginUserInfo;
@@ -18,7 +18,6 @@ import com.zz.system.user.pojo.vo.SysUserVO;
 import com.zz.system.user.service.SysUserService;
 import com.zz.system.user.mapper.SysUserMapper;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -41,17 +40,18 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser>
 
     @Override
     @TraceStep(module = "system", callType = "service")
-    public SysUser getUserInfoByAccount(String account) {
+    public SysUserFeignDTO getUserInfoByAccount(String account) {
         QueryWrapper<SysUser> qw = new QueryWrapper<>();
         // 根据账号查询，账号查询有且只有一个
         qw.eq("account", account);
-        return baseMapper.selectOne(qw);
+        SysUser sysUser = super.getOne(qw);
+        return sysUserConverter.entityToFeignDTO(sysUser);
     }
 
     @Override
     @TraceStep(module = "system", callType = "service", db = "learn", table = "sys_user")
     public void editError(Long userId) {
-        SysUser sysUser = baseMapper.selectById(userId);
+        SysUser sysUser = super.getById(userId);
         if (sysUser.getPassErrorCount() + 1 > 3) {
             // 返回给前端 redis内增加一个5分钟的key-value 若是当前用户存在key-value时则显示具体可以登录时间
             redisService.set("login_locked", true, 5);
@@ -66,7 +66,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser>
     @Override
     @TraceStep(module = "system", callType = "service", db = "learn", table = "sys_user")
     public void editLogin(Long userId) {
-        SysUser sysUser = baseMapper.selectById(userId);
+        SysUser sysUser = super.getById(userId);
         sysUser.setPassErrorCount(0);
         sysUser.setLastLoginTime(DateTime.now());
         baseMapper.updateById(sysUser);
@@ -75,20 +75,22 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser>
     @Override
     @TraceStep(module = "system", callType = "service")
     public LoginUserInfo getLoginUserInfo(Long userId) {
-        SysUser sysUser = baseMapper.selectById(userId);
+        SysUser sysUser = super.getById(userId);
         LoginUserInfo loginUserInfo = new LoginUserInfo();
         loginUserInfo.setUserId(userId);
         loginUserInfo.setAccount(sysUser.getAccount());
         loginUserInfo.setName(sysUser.getName());
-        // TODO 头像存于 sys_user_misc 杂项表（建表语句见 data/sql/system/sys_user_misc.sql），
-        //  待杂项表实体/Service 实现后，在此按 userId 查询并 setAvatar，随 LoginUserInfo 存入 redis
+        loginUserInfo.setPhone(sysUser.getPhone());
+        loginUserInfo.setEmail(sysUser.getEmail());
+        // TODO 头像存于 sys_user_misc 杂项表（建表语句见 data/sql/system/sys_user_misc.sql）
+        //      待杂项表实体/Service 实现后，在此按 userId 查询并 setAvatar、setNickname、setSignature，随 LoginUserInfo 存入 redis
         return loginUserInfo;
     }
 
     @Override
     @TraceStep(module = "system", callType = "service", db = "learn", table = "sys_user")
     public void setLastLoginTime(Long userId) {
-        SysUser sysUser = baseMapper.selectById(userId);
+        SysUser sysUser = super.getById(userId);
         if (sysUser == null) {
             return;
         }
