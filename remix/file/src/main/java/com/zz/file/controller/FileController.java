@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.OutputStream;
 import java.util.List;
 
 /**
@@ -69,5 +70,17 @@ public class FileController {
     @PostMapping(name = "书籍上传", path = "/book/upload")
     public void uploadBook(MultipartFile file, Long userId) {
         fileService.uploadBook(file, userId);
+    }
+
+    /**
+     * 从 OSS 下载文件流并写入目标 OutputStream
+     * 使用 alibabacloud-oss-v2 的 GetObjectResult.body()
+     *
+     * @param contentUrl oss地址
+     * @param target 输出流
+     */
+    @PostMapping("/download/oss")
+    void downloadOssToStream(String contentUrl, OutputStream target) throws Exception {
+        fileService.downloadOssToStream(contentUrl,target);
     }
 }

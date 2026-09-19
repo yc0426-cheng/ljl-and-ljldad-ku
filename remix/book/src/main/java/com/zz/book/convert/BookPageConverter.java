@@ -5,6 +5,8 @@ import com.zz.book.pojo.vo.BookPageVO;
 import org.mapstruct.Mapper;
 import org.mapstruct.MappingConstants;
 
+import java.util.List;
+
 /**
  * <p><b>书籍服务-转换器</b></p>
  *
@@ -18,4 +20,5 @@ public interface BookPageConverter {
      * 实体类转vo
      */
     BookPageVO entity2Vo(BookPage bookPage);
+    List<BookPageVO> entity2Vo(List<BookPage> bookPageList);
 }
