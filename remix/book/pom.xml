@@ -59,6 +59,17 @@
         </dependency>
 
         <dependency>
+            <groupId>org.apache.fesod</groupId>
+            <artifactId>fesod-sheet</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.mysql</groupId>
+            <artifactId>mysql-connector-j</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
+        <dependency>
             <groupId>com.zz.learn</groupId>
             <artifactId>api-file</artifactId>
             <version>1.0.0</version>

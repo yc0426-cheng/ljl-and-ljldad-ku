@@ -2,13 +2,15 @@ package com.zz.book.mapper;
 
 import com.zz.book.entity.Book;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import org.apache.ibatis.annotations.Mapper;
 
 /**
-* 针对表【book(书籍信息表)】的数据库操作Mapper
-*
-* @author yangcheng
-* @since 2026-09-17 15:05:35
-*/
+ * 针对表【book(书籍信息表)】的数据库操作Mapper
+ *
+ * @author yangcheng
+ * @since 2026-09-17 15:05:35
+ */
+@Mapper
 public interface BookMapper extends BaseMapper<Book> {
 
 }
