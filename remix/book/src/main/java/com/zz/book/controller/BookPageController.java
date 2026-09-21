@@ -1,11 +1,11 @@
 package com.zz.book.controller;
 
+import com.zz.book.pojo.vo.BookOpenVO;
 import com.zz.book.pojo.vo.BookPageVO;
 import com.zz.book.service.BookPageService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -34,12 +34,37 @@ public class BookPageController {
     }
 
     /**
-     * 浏览书籍
+     * 翻开书籍
      *
      * @param bookId 书籍id
+     * @return 返回书籍信息 + 首页内容 + 总页数
      */
-    @PostMapping("/cat")
-    BookPageVO catBook(Long bookId) {
-        return bookPageService.catBook(bookId);
+    @GetMapping("/{bookId}/open")
+    public BookOpenVO open(@PathVariable Long bookId) {
+        return bookPageService.openBook(bookId);
+    }
+
+    /**
+     * 翻页
+     *
+     * @param bookId 书籍id
+     * @param pageNo 页码
+     * @return 页数据
+     */
+    @GetMapping("/{bookId}/pages/{pageNo}")
+    public BookPageVO readPage(@PathVariable Long bookId, @PathVariable Integer pageNo) {
+        return bookPageService.readPage(bookId, pageNo);
+    }
+
+    /**
+     * 定位
+     *
+     * @param bookId 书籍id
+     * @param charOffset 字符偏移量
+     * @return 定位数据
+     */
+    @GetMapping("/{bookId}/locate")
+    public BookPageVO locate(@PathVariable Long bookId, @RequestParam int charOffset) {
+        return bookPageService.locatePage(bookId, charOffset);
     }
 }

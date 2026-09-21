@@ -13,8 +13,9 @@ import lombok.Getter;
 public enum BookExceptionEnum implements AbstractBaseExceptionEnum {
     BOOK_NOT_EXIST(1, "书籍不存在"),
     BOOK_EXPORT_FAIL(2, "导出失败"),
-    BOOK_NOT_AUTHORIZATION(3, "无权限修改此书籍")
-    ;
+    BOOK_NOT_AUTHORIZATION(3, "无权限修改此书籍"),
+    BOOK_STATUS_EXCEPTION(4, "书籍状态异常"),
+    BOOK_PAGE_ILLEGAL(5, "书籍页码不合法");
 
     BookExceptionEnum(Integer errorCode, String errorMessage) {
         this.errorCode = errorCode;

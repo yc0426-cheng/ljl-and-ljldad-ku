@@ -45,7 +45,7 @@ public class FileServiceImpl implements FileService {
 
     private final SysUserMiscClient sysUserMiscClient;
 
-    // 初始化
+    // bean初始化后
     @PostConstruct
     public void init() {
         // V2 客户端必须指定 region，凭证从环境变量读取
@@ -60,7 +60,7 @@ public class FileServiceImpl implements FileService {
                 .build();
     }
 
-    // 关闭时机
+    // bean销毁前调用
     @PreDestroy
     public void destroy() {
         if (ossClient != null) {
