@@ -5,3 +5,6 @@
     NEW, RUNNABLE, BLOCKED, WAITING, TIME_WAITING, TERMINATED
     而操作系统线程只有五种状态 NEW, READY, RUNNING, BLOCKED, TERMINATED 
     READY + RUNNING == RUNNABLE
+
+3. 线程池的七大参数，以及拒绝策略的四种
+4. 创建线程的三种方式

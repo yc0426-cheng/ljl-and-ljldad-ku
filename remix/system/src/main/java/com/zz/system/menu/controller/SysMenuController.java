@@ -1,5 +1,6 @@
 package com.zz.system.menu.controller;
 
+import com.zz.common.log.annotation.OperationLog;
 import com.zz.system.menu.entity.SysMenu;
 import com.zz.system.menu.service.SysMenuService;
 import lombok.RequiredArgsConstructor;
@@ -34,6 +35,7 @@ public class SysMenuController {
      *
      * @return 顶级菜单（含嵌套 children）
      */
+    @OperationLog(value = "菜单树", model = OperationLog.LogModel.SYSTEM)
     @GetMapping("/system/menu/list/tree")
     public List<SysMenu> listTree() {
         return sysMenuService.listTree();
@@ -45,6 +47,7 @@ public class SysMenuController {
      * @param menu 菜单 JSON（menuId 可空）
      * @return 新菜单 ID
      */
+    @OperationLog(value = "新增菜单/路由", model = OperationLog.LogModel.SYSTEM)
     @PostMapping("/system/menu/add")
     public Long add(@RequestBody SysMenu menu) {
         return sysMenuService.addMenu(menu);
@@ -55,6 +58,7 @@ public class SysMenuController {
      *
      * @param menu 菜单 JSON（menuId 必填）
      */
+    @OperationLog(value = "编辑菜单/路由", model = OperationLog.LogModel.SYSTEM)
     @PostMapping("/system/menu/edit")
     public void edit(@RequestBody SysMenu menu) {
         sysMenuService.editMenu(menu);
@@ -65,6 +69,7 @@ public class SysMenuController {
      *
      * @param menuId 菜单 ID
      */
+    @OperationLog(value = "删除菜单/路由（软删除自身 + 子孙）", model = OperationLog.LogModel.SYSTEM)
     @PostMapping("/system/menu/delete")
     public void delete(@RequestParam("menuId") Long menuId) {
         sysMenuService.deleteMenu(menuId);

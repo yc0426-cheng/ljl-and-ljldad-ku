@@ -24,7 +24,6 @@ public @interface OperationLog {
         API,
         AUTH,
         BOOK,
-        COMMON,
         FILE,
         GATEWAY,
         SYSTEM
