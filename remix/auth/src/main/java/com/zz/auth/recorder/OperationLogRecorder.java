@@ -63,7 +63,7 @@ public class OperationLogRecorder {
         }
         String operationMethod = request.getMethod();
         String operationIp = resolveClientIp(request);
-        Long logId = null;
+        Long logId;
         try {
             logId = operationLogFeignClient.startRequest(moduleName, methodName, callType,
                     operationMethod, operationIp, null);

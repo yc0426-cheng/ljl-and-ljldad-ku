@@ -4,6 +4,7 @@ import com.aliyun.sdk.service.oss2.OSSClient;
 import com.aliyun.sdk.service.oss2.PresignOptions;
 import com.aliyun.sdk.service.oss2.credentials.StaticCredentialsProvider;
 import com.aliyun.sdk.service.oss2.models.GetObjectRequest;
+import com.aliyun.sdk.service.oss2.models.GetObjectResult;
 import com.aliyun.sdk.service.oss2.models.PresignResult;
 import com.aliyun.sdk.service.oss2.models.PutObjectRequest;
 import com.aliyun.sdk.service.oss2.transport.BinaryData;
@@ -20,6 +21,8 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.URI;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
@@ -42,7 +45,7 @@ public class FileServiceImpl implements FileService {
 
     private final SysUserMiscClient sysUserMiscClient;
 
-    // 初始化
+    // bean初始化后
     @PostConstruct
     public void init() {
         // V2 客户端必须指定 region，凭证从环境变量读取
@@ -57,7 +60,7 @@ public class FileServiceImpl implements FileService {
                 .build();
     }
 
-    // 关闭时机
+    // bean销毁前调用
     @PreDestroy
     public void destroy() {
         if (ossClient != null) {
@@ -146,5 +149,35 @@ public class FileServiceImpl implements FileService {
     @Override
     public void uploadBook(MultipartFile file, Long userId) {
 
+    }
+
+    @Override
+    public void downloadOssToStream(String contentUrl, OutputStream target) throws Exception {
+        // 从完整 URL 提取 objectKey
+        // 例如: https://bucket.oss-cn-hangzhou.aliyuncs.com/folder/page_1.png
+        // 提取结果: folder/page_1.png
+        String objectKey = extractObjectKey(contentUrl);
+
+        // 构建 GetObjectRequest
+        GetObjectRequest request = GetObjectRequest.newBuilder()
+                .bucket(ossProperties.getBucketName())          // 从配置注入的 bucket 名称
+                .key(objectKey)              // OSS 对象 key
+                .build();
+
+        // 执行下载，GetObjectResult 需要关闭以释放资源
+        try (GetObjectResult result = ossClient.getObject(request)) {
+            // SDK V2 中通过 result.body() 获取输入流
+            InputStream is = result.body();
+            is.transferTo(target);
+        }
+    }
+
+    /**
+     * 从 OSS 完整 URL 中提取 objectKey
+     */
+    private String extractObjectKey(String url) {
+        URI uri = URI.create(url);
+        // 去掉开头的斜杠
+        return uri.getPath().substring(1);
     }
 }

@@ -1,5 +1,6 @@
 package com.zz.system.operation.controller;
 
+import com.zz.common.log.annotation.OperationLog;
 import com.zz.system.operation.service.SysUserOperationLogService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -42,6 +43,7 @@ public class SysUserOperationLogController {
      * @param userId          操作用户 id，可为 null
      * @return 主表 log_id
      */
+    @OperationLog(value = "开始记录一次请求", model = OperationLog.LogModel.SYSTEM)
     @PostMapping("/sys/operation/log/start")
     public Long startRequest(@RequestParam("moduleName") String moduleName,
                              @RequestParam("methodName") String methodName,
@@ -65,6 +67,7 @@ public class SysUserOperationLogController {
      * @param targetTable  可选：修改的目标表名
      * @return 步骤 step_id
      */
+    @OperationLog(value = "开始一个步骤", model = OperationLog.LogModel.SYSTEM)
     @PostMapping("/sys/operation/log/step/start")
     public Long startStep(@RequestParam("logId") Long logId,
                           @RequestParam(value = "parentStepId", required = false) Long parentStepId,
@@ -85,6 +88,7 @@ public class SysUserOperationLogController {
      * @param status       0 = 失败，1 = 成功
      * @param errorMessage 失败原因，可为 null
      */
+    @OperationLog(value = "结束一个步骤", model = OperationLog.LogModel.SYSTEM)
     @PostMapping("/sys/operation/log/step/finish")
     public void finishStep(@RequestParam("logId") Long logId,
                            @RequestParam("stepId") Long stepId,
@@ -101,6 +105,7 @@ public class SysUserOperationLogController {
      * @param errorMessage 整次请求失败原因，可为 null
      * @param userId       可选回填用户 id，可为 null
      */
+    @OperationLog(value = "结束一次请求", model = OperationLog.LogModel.SYSTEM)
     @PostMapping("/sys/operation/log/finish")
     public void finishRequest(@RequestParam("logId") Long logId,
                               @RequestParam("status") Integer status,

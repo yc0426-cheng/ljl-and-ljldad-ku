@@ -8,7 +8,9 @@ package com.zz.common.core.constant;
  */
 public final class RedisKeyConstant {
 
-    public static final String TOKEN= "TOKEN:";
+    public static final String TOKEN = "TOKEN:";
 
-    public static final String BLACK_LIST_PREFIX= "BLACK_LIST:";
+    public static final String BLACK_LIST_PREFIX = "BLACK_LIST:";
+
+    public static final String BOOK_USER_PREFIX = "USER_BOOK:";
 }

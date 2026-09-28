@@ -15,7 +15,7 @@ import java.util.List;
  * @since 2026/9/1 12:01
  */
 @Component
-@ConfigurationProperties(prefix = "auth")
+@ConfigurationProperties(prefix = "auth") // 从配置里拿auth开头的（这里是从nacos内拿）
 public class AuthWhiteListProperties {
 
     /**

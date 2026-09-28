@@ -27,6 +27,7 @@
         <module>api</module>
         <module>file</module>
         <module>book</module>
+        <module>common/common-log</module>
     </modules>
 
     <properties>

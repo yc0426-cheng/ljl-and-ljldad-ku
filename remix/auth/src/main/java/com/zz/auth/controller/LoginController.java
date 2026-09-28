@@ -1,5 +1,6 @@
 package com.zz.auth.controller;
 
+import com.zz.common.log.annotation.OperationLog;
 import cn.hutool.core.util.StrUtil;
 import com.zz.auth.pojo.LoginDTO;
 import com.zz.auth.service.LoginService;
@@ -23,11 +24,12 @@ public class LoginController {
     private final LoginService loginService;
 
     /**
-     * 用户登录接口
+     * 用户登录
      *
      * @param loginDTO 接收的登录账号和密码
      * @return token
      */
+    @OperationLog(value = "用户登录", model = OperationLog.LogModel.AUTH)
     @PostMapping(name = "用户登录",path = "/auth/login")
     public String login(@RequestBody LoginDTO loginDTO){
         return loginService.login(loginDTO);
@@ -41,6 +43,7 @@ public class LoginController {
      * @param authorization 请求头 Authorization（可空，空则由 service 判无效）
      * @return token对应的用户信息；token无效时抛 BizException(TOKEN_INVALID) → 500
      */
+    @OperationLog(value = "校验token", model = OperationLog.LogModel.AUTH)
     @PostMapping(name = "校验token", path = "/auth/check")
     public LoginUserInfo check(@RequestHeader(value = "Authorization", required = false) String authorization) {
         // 剥离 "Bearer " 前缀，得到纯token
@@ -57,6 +60,7 @@ public class LoginController {
      *
      * @param authorization 请求头 Authorization（可空，空则由 service 幂等返回）
      */
+    @OperationLog(value = "登出", model = OperationLog.LogModel.AUTH)
     @PostMapping(name = "登出", path = "/auth/logout")
     public void logout(@RequestHeader(value = "Authorization", required = false) String authorization){
         // 剥离 "Bearer " 前缀，得到纯token（与 check 保持同一写法）

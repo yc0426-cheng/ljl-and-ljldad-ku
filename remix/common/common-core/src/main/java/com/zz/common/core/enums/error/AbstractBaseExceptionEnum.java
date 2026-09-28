@@ -9,10 +9,6 @@ package com.zz.common.core.enums.error;
 public interface AbstractBaseExceptionEnum {
 
     /**
-     * 获取模块编码（前补0到两位）
-     * //todo 模块常量池
-     */
-    /**
      * 获取错误编码（前补0到三位）
      */
     Integer getErrorCode();

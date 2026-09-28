@@ -13,7 +13,7 @@ import org.springframework.stereotype.Component;
  */
 @Data
 @Component
-@ConfigurationProperties(prefix = "oss")
+@ConfigurationProperties(prefix = "aliyun.oss")
 public class OSSProperties {
 
     /**

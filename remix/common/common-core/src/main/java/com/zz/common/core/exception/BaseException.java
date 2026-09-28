@@ -23,7 +23,6 @@ public sealed class BaseException extends RuntimeException
 
     /**
      * 异常枚举引用，用于获取 HTTP 状态码
-     * //todo 获取http码的依赖
      */
     protected AbstractBaseExceptionEnum exceptionEnum;
 

@@ -22,7 +22,7 @@
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
 
-        <!-- 提供 @Aspect/@Around 等注解与自动代理，支撑 OperationTraceAspect 切面埋点。 -->
+        <!-- 提供 @aspect/@Around 等注解与自动代理，支撑 OperationTraceAspect 切面埋点。 -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-aop</artifactId>
@@ -123,6 +123,12 @@
         <dependency>
             <groupId>com.zz.learn</groupId>
             <artifactId>common-redis</artifactId>
+            <version>1.0.0</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.zz.learn</groupId>
+            <artifactId>common-log</artifactId>
             <version>1.0.0</version>
             <scope>compile</scope>
         </dependency>
