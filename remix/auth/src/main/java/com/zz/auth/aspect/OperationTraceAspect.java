@@ -17,9 +17,9 @@ import org.springframework.stereotype.Component;
  * <p>auth 是"埋点方"：通过 @Around 同时处理两类注解——</p>
  * <ul>
  *     <li>{@code @TraceRequest}（根）：在入口方法（如 LoginService.login）外围包一层，
- *         建主表记录 + 根步骤，结束时回写主表（见 {@link OperationLogRecorder#beginRequest} / {@link #endRequest}）；</li>
+ *         建主表记录 + 根步骤，结束时回写主表（见 {@link OperationLogRecorder#beginRequest}）；</li>
  *     <li>{@code @TraceStep}（子步骤）：包在链路上的方法外围（如 Feign 调用），
- *         建/结一条步骤记录（见 {@link OperationLogRecorder#beginStep} / {@link #endStep}）。
+ *         建/结一条步骤记录（见 {@link OperationLogRecorder#beginStep}）。
  *         步骤进行中发起的 Feign 请求会带上 X-Trace-* 头，让下游 system 把自己的步骤续挂在本步骤下。</li>
  * </ul>
  *
