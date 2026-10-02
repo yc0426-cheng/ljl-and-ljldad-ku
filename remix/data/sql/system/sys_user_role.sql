@@ -10,9 +10,9 @@ CREATE TABLE IF NOT EXISTS sys_user_role
 (
     user_role_id BIGINT PRIMARY KEY COMMENT '用户绑定角色ID',
     user_id BIGINT COMMENT '用户id',
-    role_id_list     BIGINT COMMENT '角色ID列表',
+    role_id BIGINT COMMENT '角色ID',
     create_user BIGINT NULL COMMENT '创建用户ID',
     create_time TIMESTAMP(6) DEFAULT CURRENT_TIMESTAMP(6) COMMENT '创建时间',
     update_user BIGINT NULL COMMENT '更新用户ID',
     update_time TIMESTAMP(6) DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6) COMMENT '更新时间'
-)
+) comment '用户角色绑定表'
