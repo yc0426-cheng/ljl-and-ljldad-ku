@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=<device-width>, initial-scale=1.0" />
+    <title>简化对象写法</title>
+  </head>
+  <body>
+    <script>
+      let name = "scns";
+      let change = function () {
+        console.log("cscsccs");
+      };
+
+      const SDS = {
+        name,
+        change,
+        // 可以省略 function
+        improve(){
+            console.log('scscscs')
+        }
+      };
+
+      console.log(SDS);
+    </script>
+  </body>
+</html>

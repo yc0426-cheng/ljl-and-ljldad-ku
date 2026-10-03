@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>点击div切换颜色</title>
+  </head>
+  <body>
+    <div class="container">
+      <h2 class="page-header">切换颜色</h2>
+      <div class="item"></div>
+      <div class="item"></div>
+      <div class="item"></div>
+    </div>
+    <script>
+      let items = document.getElementsByClassName("item");
+
+      
+    //   for (var i = 0; i < items.length; i++) {
+    //     items[i].onclick = function () {
+    //       this.style.background = "pink";
+    //     };
+    //   }
+
+      // let 可以使用items[i]
+      for (let i = 0; i < items.length; i++) {
+        items[i].onclick = function () {
+          items[i].style.background = "pink";
+        };
+      }
+    </script>
+  </body>
+</html>
+
+<style>
+  .container {
+    display: flex;
+  }
+
+  .item {
+    width: 50px;
+    height: 50px; /* 给它一个高度，不然高度是 0 你看不见 */
+    border: 1px solid #000; /* 设置 1 像素的黑色实线边框 */
+    margin-bottom: 10px; /* 顺便加个间距，更好看 */
+  }
+</style>
