@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Symbol内置值</title>
+  </head>
+  <body>
+    <script>
+      class UUU {
+        static [Symbol.isConcatSpreadable] = true;
+        static [Symbol.hasInstance](instance) {
+          console.log("instance", instance);
+        }
+      }
+
+      let uuuu = {};
+      console.log(uuuu instanceof UUU);
+
+      let arr = [1, 2, 3];
+      let uuu = [4, 5, 6];
+      uuuu[Symbol.isConcatSpreadable] = false;
+      console.log(arr.concat(uuu, uuuu));
+    </script>
+  </body>
+</html>

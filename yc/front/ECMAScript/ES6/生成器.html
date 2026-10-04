@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>生成器</title>
+  </head>
+  <body>
+    <script>
+      // 是一个生成器函数，返回一个生成器对象
+
+      function* gen() {
+        console.log("start");
+        let value1 = yield 1; // yield 关键字暂停函数的执行，并返回一个值
+        console.log(value1); // 输出传入的参数 hello
+        console.log("continue");
+        yield 2;
+        console.log("end");
+      }
+
+      let iterator = gen("method");
+      let result1 = iterator.next(); // 第一次调用 next() 方法，开始执行生成器函数，直到遇到第一个 yield 表达式。不需要传值，没有可用的 yield 表达式，所以传入的参数会被忽略
+      console.log(result1);
+      let result2 = iterator.next("hello"); // 传入的参数会作为上一个 yield 表达式的返回值
+      console.log(result2);
+      let result3 = iterator.next();
+      console.log(result3);
+    </script>
+  </body>
+</html>

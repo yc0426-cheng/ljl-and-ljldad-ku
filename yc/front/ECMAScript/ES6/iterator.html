@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>iterator</title>
+</head>
+<body>
+    <script>
+        // for..of
+        // let x = [1, 2, 3];
+        // for (let i of x) {
+        //     console.log(i); // 键值， 而in是键名
+        // }
+
+        // 自带迭代器的数据结构有: Array, Map, Set, String, TypedArray, arguments对象, NodeList对象
+
+        const banji = {
+            name: 'a',
+            stus: [
+                '小明',
+                '小红',
+                '小刚'
+            ],
+            [Symbol.iterator]() {
+                let index = 0;
+                return {
+                   next: () => {
+                        if (index < this.stus.length) {
+                            return { value: this.stus[index++], done: false };
+                        } else {
+                            return { value: undefined, done: true };
+                        }
+                    }
+                }
+            }
+        }
+
+
+        for(let stu of banji) {
+            console.log(stu);
+        }
+
+
+    </script>
+</body>
+</html>
