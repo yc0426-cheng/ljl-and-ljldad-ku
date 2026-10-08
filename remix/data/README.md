@@ -13,11 +13,18 @@ data/
 ├── nacos/
 │   └── nacos_config_export_*.zip          # Nacos 控制台导出包,可直接导入
 └── sql/
-    └── system/
-        ├── sys_user.sql                   # 用户表:建表 + admin 初始数据
-        ├── sys_user_operation_log.sql     # 用户操作记录表(请求级主表):一次完整请求一行
-        ├── sys_user_operation_step_log.sql# 用户操作步骤记录表(方法级子表):调用链上每个方法一行
-        └── sys_menu.sql                   # 系统菜单表:主页左侧菜单 + 动态路由(菜单管理)数据 + 种子
+    ├── system/                            # 系统服务相关,7 张表
+    │   ├── sys_user.sql                   # 用户表:建表 + admin 初始数据
+    │   ├── sys_role.sql                   # 角色表:超管/普通/图书/题目 4 个初始角色
+    │   ├── sys_user_role.sql              # 用户-角色绑定表
+    │   ├── sys_user_misc.sql              # 用户杂项表:头像/昵称/个性签名
+    │   ├── sys_menu.sql                   # 系统菜单表:左侧菜单 + 动态路由数据 + 种子
+    │   ├── sys_user_operation_log.sql     # 操作记录主表(请求级):一次完整请求一行
+    │   └── sys_user_operation_step_log.sql# 操作步骤子表(方法级):调用链上每个方法一行
+    └── book/                              # 书籍服务相关,3 张表
+        ├── book.sql                       # 书籍信息表
+        ├── book_page.sql                  # 书籍分页表(每页文本/资源/字符偏移)
+        └── book_book_mark.sql             # 书籍书签表(注意实际表名为 book_bookmark)
 ```
 
 ---
@@ -192,9 +199,12 @@ logging:
 
 ## 二、SQL 建表语句
 
-数据库名 `learn`,字符集 `utf8mb4`,共 4 张表:`sys_user`(用户表)、`sys_user_operation_log`(用户操作记录表/请求级主表)、`sys_user_operation_step_log`(用户操作步骤记录表/方法级子表)、`sys_menu`(系统菜单/动态路由表)。
+数据库名 `learn`，字符集 `utf8mb4`，共 10 张表，分两组：
 
-> 各表以 `data/sql/system/` 下的 SQL 文件为最终准(文件自带 `CREATE DATABASE IF NOT EXISTS` 与 `USE learn`)。
+- **系统组（7 张）**：`sys_user`（用户表）、`sys_role`（角色表）、`sys_user_role`（用户角色绑定表）、`sys_user_misc`（用户杂项表）、`sys_menu`（系统菜单/动态路由表）、`sys_user_operation_log`（操作记录请求级主表）、`sys_user_operation_step_log`（操作步骤方法级子表）。
+- **书籍组（3 张）**：`book`（书籍信息表）、`book_page`（书籍分页表）、`book_bookmark`（书籍书签表，建表脚本文件名为 book_book_mark.sql）。
+
+> 各表以 `data/sql/system/` 与 `data/sql/book/` 下的 SQL 文件为最终准(文件自带 `CREATE DATABASE IF NOT EXISTS` 与 `USE learn`)。
 
 ### 1. sys_user(用户表)
 
@@ -303,23 +313,124 @@ insert into learn.sys_user(user_id, account, name, password, phone, id_number, e
 | `status` | int | 1 启用 / 0 停用 |
 | `create_time` / `del_flag` | — | 创建时间 / 删除标记(删除为软删自身+子孙) |
 
+### 5. sys_role(角色表)
+
+角色定义表,与用户通过 `sys_user_role` 多对多关联。初始种子 4 个角色:
+
+| role_id | 角色名称 |
+|---|---|
+| 1 | 超级管理员 |
+| 2 | 普通用户 |
+| 3 | 图书管理员 |
+| 4 | 题目管理员 |
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `role_id` | BIGINT PK | 角色 ID |
+| `role_name` | varchar(200) | 角色名称 |
+| `enabled` | boolean | 是否启用 |
+| `del_flag` | boolean | 逻辑删除标记 |
+| `create_user` / `create_time` / `update_user` / `update_time` | — | 审计字段 |
+
+### 6. sys_user_role(用户角色绑定表)
+
+用户与角色的多对多关联表,一行 = 一次"用户被授予某角色"。角色分配入口为 `SysUserRoleService.assign(userId, roleIds)`。
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `user_role_id` | BIGINT PK | 绑定记录 ID |
+| `user_id` | BIGINT | 用户 ID |
+| `role_id` | BIGINT | 角色 ID(关联 sys_role) |
+| `create_user` / `create_time` / `update_user` / `update_time` | — | 审计字段 |
+
+### 7. sys_user_misc(用户杂项表)
+
+存放不便于放入 `sys_user` 主表的用户扩展信息(头像、昵称、个性签名),一人一条(`user_id` 唯一索引)。
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `misc_id` | BIGINT PK | 杂项记录 ID |
+| `user_id` | BIGINT NOT NULL | 用户 ID(关联 sys_user,唯一) |
+| `avatar` | varchar(500) | 头像 OSS 地址 |
+| `nickname` | varchar(200) | 昵称 |
+| `signature` | varchar(500) | 个性签名 |
+| `create_user` / `create_time` / `update_user` / `update_time` | — | 审计字段 |
+
+### 8. book(书籍信息表)
+
+一行 = 一本书籍。书籍原文件与封面存 OSS,`file_hash`(SHA-256)用于秒传查重。
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `id` | BIGINT PK | 书籍 ID(自增) |
+| `title` | VARCHAR(255) | 书名(带索引) |
+| `cover_url` | VARCHAR(512) | 封面图 OSS 地址 |
+| `file_url` | VARCHAR(512) | 书籍原文件 OSS 地址 |
+| `file_format` / `file_size` / `file_hash` | — | 文件格式 / 大小(字节) / SHA-256(带索引) |
+| `total_pages` | INT | 总页数 |
+| `language` | VARCHAR(16) | 书籍语言 |
+| `status` | TINYINT | 1 正常 / 0 下架 / 2 解析中 / 3 解析失败 |
+| `uploader_id` | BIGINT | 上传者 ID |
+| `create_user` / `create_time` / `update_user` / `update_time` | — | 审计字段 |
+
+### 9. book_page(书籍分页表)
+
+书籍解析后按页落成的记录,供在线阅读的翻页/定位与导出。重新解析时 `book_version` 递增、旧记录 `status` 置 0。
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `book_page_id` | BIGINT PK | 分页记录 ID(自增) |
+| `book_id` | BIGINT | 书籍 ID |
+| `book_version` | INT | 书籍版本,重新解析后递增 |
+| `page_no` / `sort_order` | INT | 页码 / 导出排序号 |
+| `content_type` | VARCHAR(16) | 内容类型(默认 text) |
+| `oss_key` / `content_url` | VARCHAR(512) | 该页资源 OSS key / 渲染地址 |
+| `content_text` | LONGTEXT | 该页纯文本内容 |
+| `char_start` / `char_end` / `char_count` | — | 该页文本在全书中的起止字符偏移 / 字符数 |
+| `status` | TINYINT | 1 有效 / 0 失效 |
+
+索引:`(book_id, book_version, page_no)` 唯一、`(book_id, book_version, sort_order)` 排序、`(book_id, book_version, char_start, char_end)` 字符定位。
+
+### 10. book_bookmark(书籍书签表)
+
+用户为书籍打的书签,一行 = 一个书签;`location` 以 JSON 保存定位信息。
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `book_bookMark_id` | BIGINT PK | 书签 ID(自增) |
+| `book_id` / `user_id` | BIGINT | 书籍 ID / 所属用户 ID |
+| `location` | JSON | 定位信息 JSON |
+| `page_no` / `last_page_no` | INT | 页码 / 最后浏览页码 |
+| `label` / `color` | — | 书签名称 / 颜色 |
+
+索引:`(user_id, book_id)` 查某用户某书的全部书签。
+
+> 注:本表 SQL 脚本文件名为 `book_book_mark.sql`,但脚本内实际表名为 `book_bookmark`。
+
 ---
 
 ## 部署步骤
 
 ### 1. 准备 MySQL
 
-按顺序执行 4 个建表脚本(文件均带 `CREATE DATABASE IF NOT EXISTS` 与 `USE learn`,可重复执行):
+按顺序执行 10 个建表脚本(文件均带 `CREATE DATABASE IF NOT EXISTS` 与 `USE learn`,可重复执行):
 
 ```bash
+# 系统组(7 张)
 mysql -u root -p < data/sql/system/sys_user.sql
+mysql -u root -p < data/sql/system/sys_role.sql
+mysql -u root -p < data/sql/system/sys_user_role.sql
+mysql -u root -p < data/sql/system/sys_user_misc.sql
+mysql -u root -p < data/sql/system/sys_menu.sql
 mysql -u root -p < data/sql/system/sys_user_operation_log.sql
 mysql -u root -p < data/sql/system/sys_user_operation_step_log.sql
-mysql -u root -p < data/sql/system/sys_menu.sql
+# 书籍组(3 张)
+mysql -u root -p < data/sql/book/book.sql
+mysql -u root -p < data/sql/book/book_page.sql
+mysql -u root -p < data/sql/book/book_book_mark.sql
 ```
 
-执行后 `learn` 库出现 4 张表:`sys_user`(含 1 条 admin 初始数据,密码明文 `666666`,仅供本地调试)、
-`sys_user_operation_log`、`sys_user_operation_step_log`、`sys_menu`(含菜单种子数据)。若环境此前已按旧版建过步骤表,
+执行后 `learn` 库出现 10 张表:`sys_user`(含 1 条 admin 初始数据,密码明文 `666666`,仅供本地调试;登录走 BCrypt 校验,如需正常登录请先把密码改成 BCrypt 密文)、`sys_role`(含 4 个初始角色)、`sys_user_role`、`sys_user_misc`、`sys_menu`(含菜单种子数据),以及操作日志主/子表和书籍 3 张表。若环境此前已按旧版建过步骤表,
 请补执行 SQL 文件末尾注释中的 `ALTER TABLE ... ADD COLUMN target_db/target_table`。
 
 ### 2. 准备 Nacos
@@ -331,8 +442,8 @@ mysql -u root -p < data/sql/system/sys_menu.sql
 
 ### 3. 启动微服务
 
-顺序:**Nacos → MySQL/Redis → system/auth → gateway**。
+顺序:**Nacos → MySQL/Redis → system/auth/file/book → gateway**。
 
-- gateway 是最后起的,需要 system/auth 先注册到 Nacos 才能让 `lb://server-auth`、`lb://system-server` 路由解析成功。
-- system 已接入 Nacos,启动后能在 Nacos 控制台 → 服务管理 → 服务列表 看到 `system-server` 实例。
-- auth、gateway 待按 README 中"待接入"配置补齐本地 `application.yaml`。
+- gateway 最后启动,需要下游服务先注册到 Nacos,`lb://` 路由才能解析成功。
+- 五个服务均已接入 Nacos,启动后可在控制台 → 服务管理 → 服务列表 看到 `system-server`、`auth-server`、`file-server`、`book-server`、`gateway-server` 实例。
+- 注意:Nacos 中 `gateway-server` 当前只配了到 auth/system 的路由,file/book 的转发路由待补齐(详见根 README"当前进度与后续计划")。
