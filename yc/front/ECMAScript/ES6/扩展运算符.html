@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>扩展运算符</title>
+  </head>
+  <body>
+    <script>
+      const rest = ["1", "4", "6", "9"];
+
+      const eee = ["1", "2", "4"];
+
+      const hebing = [...rest, ...eee];
+
+      function fn() {
+        console.log(arguments);
+      }
+
+      fn(...rest);
+
+      // 数组克隆 若是数组内元素是引用类型，则是浅拷贝
+      const keLong = [...rest];
+
+      // 将伪数组转成数组
+      const divs = document.querySelectorAll("meta");
+      console.log(divs); //返回的是一个 NodeList 对象（类数组，但不是真正的数组）
+      const divsArr = [...divs];
+      console.log(divsArr); //展开为真正的数组
+    </script>
+  </body>
+</html>

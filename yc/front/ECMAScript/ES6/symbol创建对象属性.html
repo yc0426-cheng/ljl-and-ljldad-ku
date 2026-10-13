@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>symbol创建对象属性</title>
+</head>
+<body>
+    <script>
+        // 向obj中添加方法up和down
+        let obj = {
+            name: '张三',
+            age: 18,
+            [Symbol('sex')]: '男'
+        };
+
+        let methods = {
+            up: Symbol('up'),
+            down: Symbol('down')
+        }
+
+        obj[methods.up] = function() {
+            console.log('up');
+        }
+
+        obj[methods.down] = function() {
+            console.log('down');
+        }
+
+        console.log(obj);
+    </script>
+</body>
+</html>

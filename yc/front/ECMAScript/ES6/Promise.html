@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Promise</title>
+  </head>
+  <body>
+    <script>
+      // Promise 示例
+      const p = new Promise(function (resolve, reject) {
+        // 模拟异步操作
+        setTimeout(() => {
+          let data = "异步操作完成";
+          // resolve(data); // 成功时调用 resolve
+
+          let error = "发生错误";
+          reject(error); // 失败时调用 reject
+        }, 1000);
+      });
+
+      // then方法
+      p.then(
+        (value) => {
+          console.log(value);
+        },
+        (error) => {
+          console.error(error);
+        },
+      );
+    </script>
+  </body>
+</html>

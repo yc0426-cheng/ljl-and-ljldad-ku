@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <script>
+      // 生成器函数延迟输出
+      //   function one() {
+      //     setTimeout(() => {
+      //       console.log("one");
+      //       g.next();
+      //     }, 2000);
+      //   }
+
+      //   function two() {
+      //     setTimeout(() => {
+      //       console.log("two");
+      //       g.next();
+      //     }, 2000);
+      //   }
+
+      //   function three() {
+      //     setTimeout(() => {
+      //       console.log("three");
+      //     }, 2000);
+      //   }
+
+      //   function* gen() {
+      //     yield one();
+      //     yield two();
+      //     yield three();
+      //   }
+
+      //   let g = gen();
+      //   g.next();
+
+      // 模拟获取数据
+      function getUsers() {
+        setTimeout(() => {
+          let data = [
+            { name: "张三", age: 18 },
+            { name: "李四", age: 20 },
+            { name: "王五", age: 22 },
+          ];
+          iterator.next(data);
+        }, 2000);
+      }
+
+      function getOrders() {
+        setTimeout(() => {
+          let data = [
+            { orderId: 1, price: 100 },
+            { orderId: 2, price: 200 },
+            { orderId: 3, price: 300 },
+          ];
+          iterator.next(data);
+        }, 2000);
+      }
+
+      function getTrades() {
+        setTimeout(() => {
+          let data = [
+            { tradeId: 1, amount: 1000 },
+            { tradeId: 2, amount: 2000 },
+            { tradeId: 3, amount: 3000 },
+          ];
+          iterator.next(data);
+        }, 2000);
+      }
+
+      function* gen() {
+        let users = yield getUsers();
+        console.log(users);
+        let orders = yield getOrders();
+        console.log(orders);
+        let trades = yield getTrades();
+        console.log(trades);
+      }
+
+      let iterator = gen();
+      iterator.next();
+    </script>
+  </body>
+</html>

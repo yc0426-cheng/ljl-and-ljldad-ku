@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>symbol</title>
+</head>
+<body>
+    <script>
+        // Symbol 是 JavaScript 中的一种基本数据类型，表示独一无二的值。每个从 Symbol() 返回的 Symbol 值都是唯一的，即使它们有相同的描述。
+        // Symbol 值可以作为对象属性的键，避免属性名冲突。
+        // Symbol特点:
+        // 1. 唯一性：每个 Symbol 值都是唯一的，即使它们有相同的描述。
+        // 2. 不可变性：Symbol 值是不可变的，一旦创建就不能更改。
+        // 3. 隐藏性：Symbol 值不会出现在对象的属性枚举中，也不会被 for...in 循环遍历到。
+        let sym = Symbol();
+        
+        console.log(sym, typeof sym); // 输出 "symbol"
+        
+        // Symbol() 可以接受一个可选的字符串参数作为描述，用于调试和日志记录。
+        let symWithDescription = Symbol('mySymbol');
+        console.log(symWithDescription, typeof symWithDescription); // 输出 "symbol"
+
+
+        let a = Symbol.for('a');
+        let b = Symbol.for('a');
+        console.log(a === b); // 输出 true，因为 Symbol.for() 会在全局注册
+
+        let c = Symbol('a');
+        console.log(a === c); // 输出 false，因为 Symbol() 每次都会创建一个新的唯一值
+
+        // 基本数据类型： number，string， boolean， undefined，null，symbol，object
+        // Symbol 值可以作为对象属性的键，避免属性名冲突。
+    </script>
+</body>
+</html>

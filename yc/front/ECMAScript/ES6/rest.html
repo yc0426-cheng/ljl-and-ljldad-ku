@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>rest参数</title>
+  </head>
+  <body>
+    <script>
+      // ES5 获取实参的方式 输出的对象
+      function date() {
+        console.log(arguments);
+      }
+
+      date("vfu", "vdj");
+
+      // ES6 rest参数 输出的是数组
+      function fn(a, ...args) {
+        console.log(args);
+      }
+
+      fn(1, 2, 3, 4);
+    </script>
+  </body>
+</html>

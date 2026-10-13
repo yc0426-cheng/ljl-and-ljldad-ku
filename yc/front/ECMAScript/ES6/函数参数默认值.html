@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>函数参数默认值</title>
+  </head>
+  <body>
+    <script>
+      // function add(a ,b ,c= 10) {
+      //     return a+b+c;
+      // }
+
+      // let res = add(1,4);
+      // console.log(res);
+
+      function connect({ host, username, password, port }) {
+        console.log(host);
+        console.log(username);
+        console.log(password);
+        console.log(port);
+      }
+
+      connect({
+        host: "127.0.0.1",
+        username: "root",
+        password: 666666,
+        port: 10000,
+      });
+    </script>
+  </body>
+</html>

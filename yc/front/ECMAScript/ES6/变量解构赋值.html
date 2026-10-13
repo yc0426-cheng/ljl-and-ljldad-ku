@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>变量解构赋值</title>
+</head>
+<body>
+    <script>
+        // 数组
+        // const F4 = ['LI', 'YANG', 'TANG', 'ZHAI'];
+        // let[li, yang, tang, zhai] = F4;
+
+        // console.log(li)
+        // console.log(yang)
+        // console.log(tang)
+        // console.log(zhai)
+
+        // 对象
+        const USER = {
+            name: '杨程',
+            age: 22,
+            sexy: 'male',
+            phone: '177****2253',
+            shuai: function() {
+                console.log('杨程帅哥来的')
+            }
+        };
+
+        USER.shuai()
+
+        let {name, age, sexy, phone, shuai} = USER;
+        console.log(name)
+        console.log(age)
+        console.log(sexy)
+        console.log(phone)
+        console.log(shuai())
+    </script>
+</body>
+</html>
