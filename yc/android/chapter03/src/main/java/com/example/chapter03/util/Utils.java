@@ -13,7 +13,7 @@ public class Utils {
      * <p>
      * dpi^2 = width^2 + height^2
      */
-    public static int dip2px(Context context, Float dpValue) {
+    public static int dip2px(Context context, float dpValue) {
         // 获取手机像素密度(1个dp对应几个px)
         float scale = context.getResources().getDisplayMetrics().density;
         // 四舍五入

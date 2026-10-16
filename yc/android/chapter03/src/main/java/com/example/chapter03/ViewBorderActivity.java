@@ -15,9 +15,9 @@ public class ViewBorderActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_view_border);
         TextView tv = findViewById(R.id.tv_java);
-        // viewgroup内的静态内部类
+        // ViewGroup内的静态内部类
         ViewGroup.LayoutParams layoutParams = tv.getLayoutParams();
-        layoutParams.width = Utils.dip2px(this, 300f);
+        layoutParams.width = Utils.dip2px(this, 300);
         tv.setLayoutParams(layoutParams);
     }
 }
