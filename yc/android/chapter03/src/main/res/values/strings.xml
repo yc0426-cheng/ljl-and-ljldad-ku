@@ -3,4 +3,6 @@
     <string name="tv_hello">你好，世界</string>
     <string name="tv_color">十六进制演示java</string>
     <string name="tv_color_xml">十六进制演示xml</string>
+    <string name="tv_left">左边的逻辑</string>
+    <string name="tv_right">右边的逻辑</string>
 </resources>
