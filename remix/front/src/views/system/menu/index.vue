@@ -128,7 +128,7 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
-import { listMenuTree, addMenu, editMenu, deleteMenu } from '@/api/system/menu'
+import { MenuApi } from '@/api/system/menu/menu'
 import { registerMenuRoutes } from '@/router'
 import type { SysMenu } from '@/types/system/menu'
 
@@ -148,7 +148,7 @@ function goHome(): void {
 async function loadTree(): Promise<void> {
   loading.value = true
   try {
-    tree.value = await listMenuTree()
+    tree.value = await MenuApi.listTree()
     registerMenuRoutes(tree.value) // 新增/编辑后再次注册（幂等）
   } catch (e) {
     ElMessage.error(e instanceof Error ? e.message : '菜单加载失败')
@@ -264,10 +264,10 @@ async function onSubmit(): Promise<void> {
       status: 1
     }
     if (isEdit.value) {
-      await editMenu(payload)
+      await MenuApi.editMenu(payload)
       ElMessage.success('保存成功')
     } else {
-      await addMenu(payload)
+      await MenuApi.addMenu(payload)
       ElMessage.success('新增成功')
     }
     dialogVisible.value = false
@@ -291,7 +291,7 @@ async function onDelete(row: SysMenu): Promise<void> {
     return
   }
   try {
-    await deleteMenu(row.menuId!)
+    await MenuApi.deleteMenu(row.menuId!)
     ElMessage.success('删除成功')
     await loadTree()
   } catch (e) {

@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia' // pinia 状态仓库定义函数
-import { login as loginApi, logout as logoutApi, checkToken } from '@/api/auth' // 登录/登出/token 校验接口
+import { AuthApi } from '@/api/auth/auth' // 登录/登出/token 校验接口
 
 // 用户信息结构：与后端 LoginUserInfo（userId / account / name / token / avatar）对应；
 // phone/email/nickname/signature 为编辑表单预留，后端用户信息接口返回后经 setUserInfo 自动流入
@@ -53,7 +53,7 @@ export const useUserStore = defineStore('user', {
      */
     async login({ account, password }: { account: string; password: string }): Promise<void> {
       // 调后端 /auth/login，返回 token 字符串
-      const token = await loginApi(account, password)
+      const token = await AuthApi.login(account, password)
 
       // 保存 token：内存 state + localStorage 持久化（两者保持一致）
       this.token = token
@@ -78,7 +78,7 @@ export const useUserStore = defineStore('user', {
      * 登录后与路由守卫刷新校验时都会走这里，保证各页面拿到的是后端的最新数据。
      */
     async fetchUserInfo(): Promise<void> {
-      const info = await checkToken()
+      const info = await AuthApi.checkToken()
       if (info) {
         this.setUserInfo(info)
       }
@@ -113,7 +113,7 @@ export const useUserStore = defineStore('user', {
     async logout(): Promise<void> {
       // 调后端登出接口；后端异常/网络失败时 try 住，不影响本地清理
       try {
-        await logoutApi()
+        await AuthApi.logout()
       } catch {
         // 忽略：本地清理照常执行
       }

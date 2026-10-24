@@ -14,14 +14,14 @@ pnpm dev       # 启动开发服务器（默认 http://localhost:10000）
 
 ## 现有页面
 
-| 页面 | 路径 / 路由 | 文件 |
-|---|---|---|
-| 登录页 | `/login`（`meta.public`，唯一可匿名访问） | `views/login/index.vue` |
-| 学习主页 | `/home/index`（`/` 重定向到此；支持 `?view=` 切换内置视图） | `views/home/index.vue` |
-| 用户列表 | `/system/user`（由菜单数据动态注册） | `views/system/user/index.vue` |
-| 菜单管理 | `/system/menu`（静态路由） | `views/system/menu/index.vue` |
-| 个人设置 | `/user/setting`（布局底部用户区也可弹出） | `views/system/user/setting/UserSetting.vue` |
-| 建设中占位 | `/system/coming-soon`（菜单组件未实现时跳转） | `views/system/coming-soon/index.vue` |
+| 页面       | 路径 / 路由                                                 | 文件                                        |
+| ---------- | ----------------------------------------------------------- | ------------------------------------------- |
+| 登录页     | `/login`（`meta.public`，唯一可匿名访问）                   | `views/login/index.vue`                     |
+| 学习主页   | `/home/index`（`/` 重定向到此；支持 `?view=` 切换内置视图） | `views/home/index.vue`                      |
+| 用户列表   | `/system/user`（由菜单数据动态注册）                        | `views/system/user/index.vue`               |
+| 菜单管理   | `/system/menu`（静态路由）                                  | `views/system/menu/index.vue`               |
+| 个人设置   | `/user/setting`（布局底部用户区也可弹出）                   | `views/system/user/setting/UserSetting.vue` |
+| 建设中占位 | `/system/coming-soon`（菜单组件未实现时跳转）               | `views/system/coming-soon/index.vue`        |
 
 ## 开发操作流程
 
@@ -182,14 +182,14 @@ front/
 
 ## 与后端的接口契约（重要）
 
-| 项         | 说明                                                                                                                                     |
-| ---------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| 登录接口   | `POST /auth/login`（开发环境经 vite 代理 `/api` → 网关 11000 → auth 13000）                                                              |
-| 请求格式   | **JSON 格式**（`application/json`），字段 `account`、`password`。后端 `LoginController.login` 参数为 `@RequestBody LoginDTO`，传表单反而收不到 |
-| 成功返回   | **纯字符串 token**（无 `{code,data}` 包装），前端直接保存                                                                                |
+| 项         | 说明                                                                                                                                                        |
+| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 登录接口   | `POST /auth/login`（开发环境经 vite 代理 `/api` → 网关 11000 → auth 13000）                                                                                 |
+| 请求格式   | **JSON 格式**（`application/json`），字段 `account`、`password`。后端 `LoginController.login` 参数为 `@RequestBody LoginDTO`，传表单反而收不到              |
+| 成功返回   | **纯字符串 token**（无 `{code,data}` 包装），前端直接保存                                                                                                   |
 | token 校验 | `POST /auth/check`，请求头自动带 `Authorization: Bearer <token>`，返回 `LoginUserInfo`（userId/account/name/avatar 等）；无效时后端抛业务异常，守卫清登录态 |
-| 登出接口   | `POST /auth/logout`，后端删 Redis 会话并加入黑名单；接口幂等，失败不影响前端本地清理                                                      |
-| Token 传递 | 登录后写入 `localStorage`，后续请求由 `request.ts` 拦截器自动加 `Authorization: Bearer <token>` 头                                       |
-| 菜单接口   | `GET /system/menu/list/tree` 返回菜单树，用于渲染左侧菜单 + 动态注册路由；当前为全量返回，尚未按角色过滤                                 |
-| 统一包装   | 后端暂无 `{code,data,message}` 包装，request 已适配为直接返回数据；后端补全后可恢复 code 校验                                            |
-| 国密加密   | 后端暂无国密解密，`utils/crypto.ts` 为透传占位，待后端支持后启用                                                                         |
+| 登出接口   | `POST /auth/logout`，后端删 Redis 会话并加入黑名单；接口幂等，失败不影响前端本地清理                                                                        |
+| Token 传递 | 登录后写入 `localStorage`，后续请求由 `request.ts` 拦截器自动加 `Authorization: Bearer <token>` 头                                                          |
+| 菜单接口   | `GET /system/menu/list/tree` 返回菜单树，用于渲染左侧菜单 + 动态注册路由；当前为全量返回，尚未按角色过滤                                                    |
+| 统一包装   | 后端暂无 `{code,data,message}` 包装，request 已适配为直接返回数据；后端补全后可恢复 code 校验                                                               |
+| 国密加密   | 后端暂无国密解密，`utils/crypto.ts` 为透传占位，待后端支持后启用                                                                                            |

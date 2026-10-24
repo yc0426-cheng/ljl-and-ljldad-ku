@@ -38,13 +38,18 @@
           placeholder="请输入账号"
           @input="onAccountRuleInput"
         />
-        <el-input
-          v-model="form.password"
-          class="input-border"
-          type="password"
-          placeholder="请输入密码"
-          show-password
-        />
+        <div class="password-wrap">
+          <el-input
+            v-model="form.password"
+            class="input-border"
+            type="password"
+            placeholder="请输入密码"
+            show-password
+            @keydown="onPasswordKeyToggle"
+            @keyup="onPasswordKeyToggle"
+            @blur="capsLockOn = false"
+          />
+        </div>
       </div>
       <!-- 登录按钮：loading 时禁用，防止重复提交 -->
       <div class="login-button">
@@ -52,6 +57,7 @@
           {{ loading ? '登录中...' : '登录' }}
         </el-button>
       </div>
+      <div v-if="capsLockOn" class="caps-lock-tip">大写已开启</div>
     </div>
     <!-- 失败提示卡：fixed 居中（主页 heat-tip 同款墨绿材质 + 主题红描边），3 秒自动消失，点击可关闭 -->
     <transition name="fail-fade">
@@ -63,17 +69,19 @@
     </transition>
   </div>
 </template>
+
 <script setup lang="ts">
 // ---------------- import 区 ----------------
 import { reactive, ref } from 'vue' // 组合式 API：响应式状态
 import { useRoute, useRouter } from 'vue-router' // 路由（读取回跳参数 + 登录成功后跳转）
 import { useUserStore } from '@/store/user' // 用户状态仓库（登录动作封装在这里）
+import { AuthApi } from '@/api/auth/auth' // 查询后端权威失败次数
 import { ElLoading } from 'element-plus' // 全屏 loading 服务（点击登录后转圈遮罩）
 import 'element-plus/dist/index.css'
 // 注意：本页不引入 ElMessage —— 登录结果统一由页面内 fail-box 提示，
 // 避免与 store / axios 拦截器里的全局 message 重复弹出
 // ---------------- 常量 ----------------
-// 最大失败次数（与后端 SysUserServiceImpl.editError 里 passErrorCount + 1 > 3 的阈值对齐）
+// 最大失败次数（与后端 SysUserServiceImpl.editError 的阈值一致）
 const MAX_FAIL_COUNT = 3
 // loading 最短显示时间（毫秒），避免响应太快导致遮罩闪烁
 const MIN_LOADING_MS = 2000
@@ -91,9 +99,8 @@ const form = reactive({
 })
 // 登录中标志：防止重复提交
 const loading = ref(false)
-// 已失败次数：前端本地维护，用于显示"剩余 X 次机会"
-// 注意：本计数器仅在浏览器未刷新/未清缓存时有效，与后端 Redis 里的失败计数不严格同步
-const failCount = ref(0)
+// 是否开启大写锁定
+const capsLockOn = ref(false)
 // 是否显示失败弹窗
 const showFailBox = ref(false)
 // 失败弹窗文案
@@ -106,8 +113,7 @@ let failBoxTimer: ReturnType<typeof setTimeout> | null = null
  * 1. 前端校验账号、密码非空（与后端 LoginDTO 的 @NotBlank 校验对应）
  * 2. 弹全屏 loading 遮罩（ElLoading.service），转圈并锁定点击
  * 3. 调 store 的 login 动作；无论成败，loading 至少持续 2 秒（避免闪烁）
- * 4. 成功 → 跳转首页；失败 → 屏幕正中央提示卡，文案带"剩余 X 次机会"
- * todo 请求逻辑问题，不应该是前端自己控制
+ * 4. 成功 → 跳转首页；密码错误 → 查询后端失败次数后展示剩余机会
  */
 async function handleLogin(): Promise<void> {
   // 前端校验：账号不能为空
@@ -129,13 +135,25 @@ async function handleLogin(): Promise<void> {
   })
   // 记录开始时间，保证 loading 至少持续 MIN_LOADING_MS 毫秒
   const start = Date.now()
-  let loginFailed = false
+  let failureMessage = ''
   try {
     // 调 store 登录动作；成功后 token 已写入 localStorage，登录态由路由守卫接管
     await userStore.login({ account: form.account, password: form.password })
-  } catch {
-    // 失败文案统一走下方 failCount 分支（账号或密码错误 / 锁定），无需读取 e.message
-    loginFailed = true
+  } catch (error) {
+    const backendMessage = error instanceof Error ? error.message : '登录失败'
+    failureMessage = backendMessage
+
+    if (backendMessage.includes('密码错误')) {
+      try {
+        const errorCount = await AuthApi.getErrorCount(form.account)
+        const remaining = Math.max(0, MAX_FAIL_COUNT - errorCount)
+        failureMessage = `${backendMessage}（已失败 ${errorCount} 次，剩余 ${remaining} 次）`
+      } catch (countError) {
+        const countErrorMessage =
+          countError instanceof Error ? countError.message : '无法获取当前失败次数'
+        failureMessage = `${backendMessage}（失败次数同步失败：${countErrorMessage}）`
+      }
+    }
   }
   // 至少等够 2 秒再关 loading（响应快也不能让遮罩一闪而过）
   const elapsed = Date.now() - start
@@ -145,15 +163,8 @@ async function handleLogin(): Promise<void> {
   // 关闭 loading
   loadingInstance.close()
   loading.value = false
-  if (loginFailed) {
-    // 失败：累加本地失败次数，显示提示卡
-    failCount.value++
-    const remaining = Math.max(0, MAX_FAIL_COUNT - failCount.value)
-    if (remaining > 0) {
-      showFail(`账号或密码错误，您还有 ${remaining} 次机会`)
-    } else {
-      showFail('错误次数已达上限，账号已被锁定，请 5 分钟后再试')
-    }
+  if (failureMessage) {
+    showFail(failureMessage)
   } else {
     // 成功：优先回到守卫拦截时记录的原路径（?redirect=），否则进主页
     // （redirect 仅接受本站内路径，避免被外部拼接地址利用）
@@ -163,6 +174,7 @@ async function handleLogin(): Promise<void> {
     router.push(target)
   }
 }
+
 /**
  * 显示失败提示卡：屏幕正中央墨绿卡片，FAIL_BOX_VISIBLE_MS 毫秒后自动隐藏
  * @param msg 提示文案
@@ -179,6 +191,7 @@ function showFail(msg: string): void {
     failBoxTimer = null
   }, FAIL_BOX_VISIBLE_MS)
 }
+
 /**
  * 登录账号输入规则（输入即过滤，不弹任何提示）
  *
@@ -195,6 +208,10 @@ const onAccountRuleInput = (event: Event): void => {
     form.account = value
   }
 }
+
+const onPasswordKeyToggle = (event: KeyboardEvent): void => {
+  capsLockOn.value = event.getModifierState('CapsLock')
+}
 </script>
 <style scoped>
 /* ============ 页面骨架：与主页同底色（米色纸感） ============ */
@@ -204,13 +221,16 @@ const onAccountRuleInput = (event: Event): void => {
   display: flex;
   flex-direction: row;
   background: #f5f2ea;
-  overflow: hidden; /* 登录页不需要滚动条 */
+  overflow: hidden;
+  /* 登录页不需要滚动条 */
 }
+
 /* ============ 左侧：品牌展示区 ============ */
 .page-main-static {
   width: 60%;
   margin: 20px 10px 20px 20px;
 }
+
 /* 深绿画布：主题绿 → 墨绿渐变，承载品牌信息与图片占位 */
 .brand-canvas {
   height: calc(100vh - 40px);
@@ -226,12 +246,15 @@ const onAccountRuleInput = (event: Event): void => {
   color: #f0ede2;
   padding: 48px;
 }
+
 .brand-canvas .crumb {
   font-size: 10px;
   letter-spacing: 4px;
-  color: #9db3a8; /* 深底上的灰绿（主页 #9aa093 的提亮版） */
+  color: #9db3a8;
+  /* 深底上的灰绿（主页 #9aa093 的提亮版） */
   margin: 0 0 14px;
 }
+
 .brand-canvas h1 {
   font-size: 34px;
   font-weight: 800;
@@ -239,12 +262,14 @@ const onAccountRuleInput = (event: Event): void => {
   margin: 0 0 12px;
   color: #f0ede2;
 }
+
 .brand-canvas .slogan {
   font-size: 13px;
   letter-spacing: 3px;
   color: #9db3a8;
   margin: 0;
 }
+
 /* 装饰热力格：米黄透明度阶梯，呼应主页"每日学习记录"色阶 */
 .deco-grid {
   display: grid;
@@ -252,26 +277,34 @@ const onAccountRuleInput = (event: Event): void => {
   gap: 5px;
   margin-top: 36px;
 }
+
 .deco-grid i {
   width: 15px;
   height: 15px;
   border-radius: 4px;
 }
+
 .d0 {
   background: rgba(240, 237, 226, 0.1);
 }
+
 .d1 {
   background: rgba(240, 237, 226, 0.25);
 }
+
 .d2 {
   background: rgba(240, 237, 226, 0.4);
 }
+
 .d3 {
   background: rgba(245, 217, 168, 0.55);
 }
+
 .d4 {
-  background: #f5d9a8; /* 主页高亮米黄 */
+  background: #f5d9a8;
+  /* 主页高亮米黄 */
 }
+
 /* 图片占位区：虚线框提示后续可放图 */
 .pic-slot {
   margin-top: 36px;
@@ -282,6 +315,7 @@ const onAccountRuleInput = (event: Event): void => {
   letter-spacing: 2px;
   color: rgba(240, 237, 226, 0.55);
 }
+
 /* ============ 右侧：登录卡片（主页卡片同款材质） ============ */
 .page-main-login {
   width: 40%;
@@ -297,17 +331,20 @@ const onAccountRuleInput = (event: Event): void => {
   box-shadow: 0 10px 30px rgba(34, 48, 42, 0.08);
   padding: 40px 48px;
 }
+
 /* 标题区：主页 page-head 同款"小字 crumb + 大标题"排版 */
 .login-head {
   text-align: center;
   margin-bottom: 38px;
 }
+
 .login-head .crumb {
   font-size: 10px;
   letter-spacing: 4px;
   color: #9aa093;
   margin: 0 0 12px;
 }
+
 .login-head h2 {
   font-size: 24px;
   font-weight: 800;
@@ -315,12 +352,14 @@ const onAccountRuleInput = (event: Event): void => {
   color: #22302a;
   margin: 0 0 12px;
 }
+
 .login-head .sub {
   font-size: 12px;
   letter-spacing: 2px;
   color: #9aa093;
   margin: 0;
 }
+
 /* ============ 表单 ============ */
 .form-group {
   display: flex;
@@ -330,10 +369,27 @@ const onAccountRuleInput = (event: Event): void => {
   width: 300px;
   max-width: 100%;
 }
+
 .input-border {
   width: 300px;
   max-width: 100%;
 }
+
+.password-wrap {
+  position: relative;
+  width: 300px;
+  max-width: 100%;
+}
+
+.caps-lock-tip {
+  margin-top: 10px;
+  color: #9aa093;
+  font-size: 12px;
+  line-height: 1.5;
+  letter-spacing: 2px;
+  text-align: center;
+}
+
 /* 输入框：白底 + 米色边框，聚焦时主题绿（Element Plus 2.x 用 wrapper 的 inset box-shadow 画边框） */
 :deep(.input-border .el-input__wrapper) {
   border-radius: 10px;
@@ -342,12 +398,15 @@ const onAccountRuleInput = (event: Event): void => {
   padding: 2px 14px;
   transition: box-shadow 0.2s ease;
 }
+
 :deep(.input-border .el-input__wrapper:hover) {
   box-shadow: 0 0 0 1px #c9d3c6 inset;
 }
+
 :deep(.input-border .el-input__wrapper.is-focus) {
   box-shadow: 0 0 0 1.5px #2d5a4a inset;
 }
+
 :deep(.input-border .el-input__inner) {
   height: 44px;
   line-height: 44px;
@@ -355,6 +414,7 @@ const onAccountRuleInput = (event: Event): void => {
   color: #22302a;
   font-size: 14px;
 }
+
 /* placeholder：常规灰绿小字（替换原楷体加粗样式） */
 :deep(.input-border .el-input__inner::placeholder) {
   font-size: 13px;
@@ -363,16 +423,19 @@ const onAccountRuleInput = (event: Event): void => {
   color: #9aa093;
   letter-spacing: 1px;
 }
+
 /* 密码可见性图标 */
 :deep(.input-border .el-input__password) {
   color: #9aa093;
 }
+
 /* ============ 登录按钮：主题绿实底（覆盖 Element 变量，替代 type="success" 的默认绿） ============ */
 .login-button {
   margin-top: 30px;
   width: 300px;
   max-width: 100%;
 }
+
 .login-btn {
   width: 100%;
   height: 46px;
@@ -380,7 +443,8 @@ const onAccountRuleInput = (event: Event): void => {
   font-size: 15px;
   font-weight: 600;
   letter-spacing: 8px;
-  text-indent: 8px; /* 抵消末字间距，让"登录"两字视觉居中 */
+  text-indent: 8px;
+  /* 抵消末字间距，让"登录"两字视觉居中 */
   --el-button-bg-color: #2d5a4a;
   --el-button-border-color: #2d5a4a;
   --el-button-text-color: #f0ede2;
@@ -394,73 +458,90 @@ const onAccountRuleInput = (event: Event): void => {
   --el-button-disabled-border-color: #9db3a8;
   --el-button-disabled-text-color: #f0ede2;
 }
+
 /* ============ 失败提示卡：主页 heat-tip 同款墨绿材质 + 主题红描边 ============ */
 .fail-box {
   position: fixed;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  z-index: 10000; /* 高于 ElLoading 遮罩（默认 2000+），关闭 loading 后浮于最上层 */
+  z-index: 10000;
+  /* 高于 ElLoading 遮罩（默认 2000+），关闭 loading 后浮于最上层 */
   min-width: 300px;
   max-width: 86vw;
   padding: 24px 38px;
   background: #22302a;
-  border: 1px solid #b5482f; /* 主题红描边，标识错误 */
+  border: 1px solid #b5482f;
+  /* 主题红描边，标识错误 */
   border-radius: 14px;
   box-shadow: 0 12px 32px rgba(34, 48, 42, 0.35);
   text-align: center;
-  cursor: pointer; /* 提示用户点击可关闭 */
+  cursor: pointer;
+  /* 提示用户点击可关闭 */
   user-select: none;
 }
+
 .fb-title {
   display: block;
   font-size: 13px;
   font-weight: 600;
   letter-spacing: 3px;
-  color: #f2a491; /* 主题红 #b5482f 的深底提亮版 */
+  color: #f2a491;
+  /* 主题红 #b5482f 的深底提亮版 */
 }
+
 .fb-msg {
   margin: 10px 0 12px;
   font-size: 15px;
   letter-spacing: 1px;
   color: #f0ede2;
 }
+
 .fb-hint {
   font-size: 10px;
   letter-spacing: 2px;
   color: rgba(240, 237, 226, 0.45);
 }
+
 /* 弹窗淡入淡出 */
 .fail-fade-enter-active,
 .fail-fade-leave-active {
   transition: opacity 0.25s ease;
 }
+
 .fail-fade-enter-from,
 .fail-fade-leave-to {
   opacity: 0;
 }
+
 /* ============ 小屏适配：上下堆叠 ============ */
 @media (max-width: 860px) {
   .page {
     flex-direction: column;
     overflow: auto;
   }
+
   .page-main-static {
     width: auto;
     margin: 20px 20px 0;
   }
+
   .brand-canvas {
     height: 220px;
     padding: 24px;
   }
+
   .brand-canvas h1 {
     font-size: 24px;
     letter-spacing: 4px;
   }
+
   .deco-grid,
   .pic-slot {
-    display: none; /* 小屏收纳装饰元素 */
+    display: none;
+    /* 小屏收纳装饰元素 */
   }
+
   .page-main-login {
     width: auto;
     margin: 20px;
