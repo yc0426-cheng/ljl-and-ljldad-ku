@@ -104,6 +104,20 @@ public class LoginService {
     }
 
     /**
+     * 查询账号当前的登录密码错误次数
+     *
+     * @param account 账号
+     * @return 密码错误次数；账号不存在时返回 0
+     */
+    public Integer getErrorCount(String account) {
+        SysUserFeignDTO user = sysUserFeignClient.getUserInfoByAccount(account);
+        if (user == null || user.getPassErrorCount() == null) {
+            return 0;
+        }
+        return user.getPassErrorCount();
+    }
+
+    /**
      * 校验token是否有效
      * 有效标准：redis中存在 TOKEN:&lt;token&gt; 键（未过期），且不在登出黑名单中
      *

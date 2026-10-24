@@ -89,7 +89,7 @@ import { nextTick, reactive, ref } from 'vue'
 import type { FormInstance, FormRules } from 'element-plus'
 import { ElMessage } from 'element-plus'
 import { useUserStore } from '@/store/user'
-import { userApi } from '@/api/system/user'
+import { UserApi } from '@/api/system/user'
 import type { EditUserInfoForm } from '@/types/system/user'
 
 /** 弹窗显隐：v-model 双向绑定（父组件 UserSetting 控制） */
@@ -161,7 +161,7 @@ async function onSave(): Promise<void> {
       nickname: form.nickname || undefined,
       signature: form.signature || undefined
     }
-    await userApi.editUserInfo(payload)
+    await UserApi.editUserInfo(payload, userStore.userInfo!.userId!)
     // 先本地合并保证 UI 即时更新，再异步拉后端最新数据覆盖（后端暂未返回这些字段时也不影响）
     userStore.setUserInfo(payload)
     void userStore.fetchUserInfo().catch(() => undefined)

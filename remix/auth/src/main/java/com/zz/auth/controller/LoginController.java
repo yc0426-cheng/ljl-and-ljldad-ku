@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -33,6 +34,17 @@ public class LoginController {
     @PostMapping(name = "用户登录",path = "/auth/login")
     public String login(@RequestBody LoginDTO loginDTO){
         return loginService.login(loginDTO);
+    }
+
+    /**
+     * 根据账号查询登录密码错误次数
+     *
+     * @param account 账号
+     * @return 密码错误次数；账号不存在时返回 0
+     */
+    @PostMapping(path = "/auth/error-count")
+    public Integer getErrorCount(@RequestParam("account") String account) {
+        return loginService.getErrorCount(account);
     }
 
     /**

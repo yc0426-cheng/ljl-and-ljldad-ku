@@ -56,10 +56,9 @@
           </template>
         </el-table-column>
         <el-table-column prop="lastLoginTime" label="最后登录时间" sortable min-width="160" />
-        <el-table-column label="操作" align="center" fixed="right" width="130">
+        <el-table-column label="操作" align="center" fixed="right" width="65">
           <template #default="row">
             <el-button link type="warning" @click="handleEdit(row)">修改</el-button>
-            <el-button link type="danger" @click="handleDelete(row)">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -78,7 +77,7 @@
 import { onMounted, reactive, ref } from 'vue'
 import type { Component } from 'vue'
 import { CircleCheckFilled, CircleCloseFilled, Lock, Moon } from '@element-plus/icons-vue'
-import { SysUser, SysUserDTO, SysUserParam, SysUserVO } from '@/types/system/user'
+import { SysUser, SysUserParam, SysUserVO } from '@/types/system/user'
 import { SysUserApi } from '@/api/system/user/user'
 
 // ---------------- 状态列展示映射（纯展示，不参与数据流） ----------------
@@ -161,21 +160,6 @@ const handleEdit = (row: SysUserVO) => {
   isEdit.value = true
   visible.value = true
   selectedData.value = row
-}
-
-/**
- * 删除用户
- */
-const handleDelete = (row: SysUserVO) => {
-  loading.value = true
-  // 实体转dto
-  const dto = <SysUserDTO>{
-    ...row
-  }
-
-  SysUserApi.delete(dto).finally(() => {
-    loading.value = false
-  })
 }
 
 // 初始化页面

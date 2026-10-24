@@ -87,7 +87,7 @@ import {
 } from '@element-plus/icons-vue'
 import type { Component } from 'vue'
 import { useUserStore } from '@/store/user'
-import { listMenuTree } from '@/api/system/menu'
+import { MenuApi } from '@/api/system/menu/menu'
 import { isMenuRouteReady, registerMenuRoutes } from '@/router'
 import type { SysMenu } from '@/types/system/menu'
 // 个人设置浮层组件（含更改头像：el-dialog + el-upload → 后端转存 OSS）
@@ -260,7 +260,7 @@ function buildFallbackMenus(): SysMenu[] {
 async function loadMenus(): Promise<void> {
   menuLoading.value = true
   try {
-    const list = await listMenuTree()
+    const list = await MenuApi.listTree()
     menuTree.value = toMenuNodes(list.filter((m) => m.visible !== false))
     registerMenuRoutes(list) // 解析到组件的叶子注册成路由（挂在布局下，渲染在右侧主区）
   } catch (e) {

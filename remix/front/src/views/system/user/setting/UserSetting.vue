@@ -125,7 +125,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import type { UploadFile, UploadInstance } from 'element-plus'
 import { Close, Plus, Rank } from '@element-plus/icons-vue'
 import { useUserStore } from '@/store/user'
-import { uploadApi } from '@/api/system/user'
+import { UploadApi } from '@/api/system/user'
 import UserSettingForm from '@/views/system/user/setting/UserSettingForm.vue'
 
 const emit = defineEmits<{ (e: 'close'): void }>()
@@ -186,7 +186,7 @@ async function onUploadAvatar(): Promise<void> {
     const formData = new FormData()
     formData.append('file', selectedFile.value)
     formData.append('userId', String(userStore.userInfo!.userId))
-    const { url } = await uploadApi.uploadingAvatar(formData)
+    const { url } = await UploadApi.uploadingAvatar(formData)
     userStore.userInfo = { ...userStore.userInfo!, avatar: url }
     // 本地兜底：接口暂未返回 avatar 字段时，刷新后仍能恢复（按 userId 区分账号）
     localStorage.setItem(avatarKey(userStore.userInfo!.userId), url)
