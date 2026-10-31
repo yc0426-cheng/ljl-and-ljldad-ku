@@ -1,4 +1,4 @@
-import { SysUserRoleAssignDTO, SysUserRoleVO } from '@/types/system/userRole'
+import { SysUserRoleVO } from '@/types/system/userRole'
 import { request } from '@/utils/request'
 
 /**
@@ -26,16 +26,5 @@ export class UserRoleApi {
    */
   static page(userId: number): Promise<SysUserRoleVO[]> {
     return request.post('/sys/user/role/page', userId)
-  }
-
-  /**
-   * 为用户分配角色（全量分配：先清空旧角色再写入新角色）
-   * 对应后端 user 包 SysUserRoleController#assignRoles；
-   * roleIds 传空数组 = 清空全部角色
-   *
-   * @param dto 分配数据：{userId, roleIds}
-   */
-  static assign(dto: SysUserRoleAssignDTO): Promise<void> {
-    return request.post('/sys/user/role/assign', dto)
   }
 }

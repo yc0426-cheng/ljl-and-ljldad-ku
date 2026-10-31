@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">CommonLayout</string>
+    <string name="layout_h_first">横排第一个</string>
+    <string name="layout_v_first">竖排第一个</string>
+    <string name="layout_h_second">横排第二个</string>
+    <string name="layout_v_second">竖排第二个</string>
+</resources>
