@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">ActivityApplication</string>
+    <string name="send_request_data">请求传送数据</string>
+    <string name="get_response_data">返回应答数据</string>
+</resources>

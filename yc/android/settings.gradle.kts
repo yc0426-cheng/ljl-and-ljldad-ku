@@ -26,3 +26,4 @@ rootProject.name = "My Application"
 include(":app")
 include(":chapter03")
 include(":commonlayout")
+include(":activityapplication")
