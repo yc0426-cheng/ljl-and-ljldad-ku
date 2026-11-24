@@ -1,0 +1,17 @@
+### GET request to example server
+POST http://127.0.0.1:13000/auth/login
+Content-Type: application/json
+
+{
+  "account": "admin",
+  "password": "666666"
+}
+###
+
+GET http://127.0.0.1:12000/sys/user/list
+Content-Type: application/json
+
+{
+  "account": "",
+  "password": ""
+}
